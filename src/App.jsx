@@ -23,17 +23,18 @@ function App() {
     window.location.href = '/login';
   };
 
-  // 🔑 Kiểm tra quyền Admin:
-  // Cấp quyền Admin nếu role === 'admin' HOẶC là tài khoản hoangtrongbao
+  // 🔑 Bổ sung kiểm tra theo tên Hoàng Trọng Bảo để luôn hiện nút Admin
   const isAdmin =
     currentUser?.role === 'admin' ||
     currentUser?.isAdmin === true ||
     currentUser?.email === 'hoangtrongbao1408@gmail.com' ||
-    currentUser?.username === 'hoangtrongbao';
+    currentUser?.username === 'hoangtrongbao' ||
+    currentUser?.fullName === 'Hoàng Trọng Bảo' ||
+    currentUser?.name === 'Hoàng Trọng Bảo';
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
-      {/* HEADER ĐIỀU HƯỚNG */}
+      {/* HEADER */}
       <header style={styles.header}>
         <div style={styles.headerContainer}>
           <Link to="/" style={styles.logo}>
@@ -45,7 +46,7 @@ function App() {
               + Đăng tin
             </Link>
 
-            {/* NÚT TRANG ADMIN (Hiển thị cho Admin) */}
+            {/* NÚT TRANG ADMIN */}
             {isAdmin && (
               <Link to="/admin" style={styles.adminBtn}>
                 🛡️ Trang Admin
@@ -54,7 +55,6 @@ function App() {
 
             {currentUser ? (
               <div style={styles.userSection}>
-                {/* NÚT TRANG CÁ NHÂN (BẤM VÀO TÊN ĐỂ VÀO PROFILE) */}
                 <Link to="/profile" style={styles.profileLink}>
                   👤 <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
                 </Link>
@@ -71,7 +71,7 @@ function App() {
         </div>
       </header>
 
-      {/* KHU VỰC NỘI DUNG ROUTE */}
+      {/* ROUTES */}
       <main style={{ padding: '20px 15px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
