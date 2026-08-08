@@ -5,7 +5,7 @@ import API from '../api/axios';
 const Register = () => {
   const [formData, setFormData] = useState({
     fullName: '',
-    username: '',
+    studentId: '',
     email: '',
     password: '',
   });
@@ -60,13 +60,13 @@ const Register = () => {
           </div>
 
           <div style={styles.field}>
-            <label style={styles.label}>Tên tài khoản (Username):</label>
+            <label style={styles.label}>Mã sinh viên (MSV):</label>
             <input
               type="text"
-              name="username"
-              value={formData.username}
+              name="studentId"
+              value={formData.studentId}
               onChange={handleChange}
-              placeholder="Nhập tên tài khoản..."
+              placeholder="Nhập mã sinh viên (VD: 211031...)..."
               required
               style={styles.input}
             />
@@ -79,7 +79,7 @@ const Register = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Nhập email..."
+              placeholder="Nhập email trường/cá nhân..."
               required
               style={styles.input}
             />

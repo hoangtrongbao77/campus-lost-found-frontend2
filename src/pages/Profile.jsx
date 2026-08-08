@@ -12,11 +12,13 @@ const Profile = () => {
   const [fullName, setFullName] = useState(
     initialUser.fullName || initialUser.name || ''
   );
+  const [studentId, setStudentId] = useState(
+    initialUser.studentId || initialUser.username || ''
+  );
   const [avatar, setAvatar] = useState(initialUser.avatar || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  // Xử lý chọn ảnh từ file máy tính (chuyển sang Base64)
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -42,12 +44,12 @@ const Profile = () => {
       const res = await API.put('/auth/profile', {
         userId,
         fullName,
+        studentId,
         avatar,
       });
 
       if (res.data.success) {
         setMessage({ type: 'success', text: 'Cập nhật thành công!' });
-        // Cập nhật lại LocalStorage
         localStorage.setItem('user', JSON.stringify(res.data.user));
         setTimeout(() => window.location.reload(), 1000);
       }
@@ -79,14 +81,14 @@ const Profile = () => {
         </div>
       )}
 
-      {/* KHU VỰC AVATAR */}
+      {/* AVATAR */}
       <div style={styles.avatarSection}>
         <div style={styles.avatarWrapper}>
           {avatar ? (
             <img src={avatar} alt="Avatar" style={styles.avatarImg} />
           ) : (
             <div style={styles.avatarPlaceholder}>
-              {(fullName || initialUser.username || 'U').charAt(0).toUpperCase()}
+              {(fullName || 'U').charAt(0).toUpperCase()}
             </div>
           )}
         </div>
@@ -118,6 +120,18 @@ const Profile = () => {
         </div>
 
         <div style={styles.field}>
+          <label style={styles.label}>Mã sinh viên (MSV):</label>
+          <input
+            type="text"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            placeholder="Nhập mã sinh viên..."
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.field}>
           <label style={styles.label}>URL Ảnh đại diện (Tùy chọn):</label>
           <input
             type="text"
@@ -133,16 +147,6 @@ const Profile = () => {
           <input
             type="text"
             value={initialUser.email || 'Chưa cập nhật'}
-            disabled
-            style={{ ...styles.input, backgroundColor: '#f1f5f9', cursor: 'not-allowed' }}
-          />
-        </div>
-
-        <div style={styles.field}>
-          <label style={styles.label}>Tên tài khoản:</label>
-          <input
-            type="text"
-            value={initialUser.username || 'Chưa cập nhật'}
             disabled
             style={{ ...styles.input, backgroundColor: '#f1f5f9', cursor: 'not-allowed' }}
           />
