@@ -34,19 +34,24 @@ const Navbar = () => {
         <div style={styles.navRight}>
           {user ? (
             <div style={styles.userSection}>
-              {/* 1. NÚT VÀO TRANG ADMIN (Chỉ hiển thị khi tài khoản có role === 'admin') */}
+              {/* 1. NÚT ĐĂNG TIN MỚI */}
+              <Link to="/create-item" style={styles.createBtn}>
+                ➕ Đăng tin
+              </Link>
+
+              {/* 2. NÚT TRANG ADMIN (Hiển thị khi role === 'admin') */}
               {user.role === 'admin' && (
                 <Link to="/admin" style={styles.adminBtn}>
                   🛡️ Trang Admin
                 </Link>
               )}
 
-              {/* 2. LINK BẤM VÀO TRANG CÁ NHÂN */}
+              {/* 3. TRANG CÁ NHÂN */}
               <Link to="/profile" style={styles.profileLink} title="Bấm để xem trang cá nhân">
                 👤 Chào, <strong>{user.fullName || user.name || 'Sinh viên'}</strong>
               </Link>
 
-              {/* 3. NÚT ĐĂNG XUẤT */}
+              {/* 4. NÚT ĐĂNG XUẤT */}
               <button onClick={handleLogout} style={styles.logoutBtn}>
                 Đăng Xuất
               </button>
@@ -100,7 +105,19 @@ const styles = {
   userSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
+  },
+  createBtn: {
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    padding: '7px 13px',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '13px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
   },
   adminBtn: {
     backgroundColor: '#f59e0b',
@@ -121,7 +138,6 @@ const styles = {
     padding: '7px 12px',
     borderRadius: '6px',
     backgroundColor: '#f1f5f9',
-    transition: 'background-color 0.2s',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',
