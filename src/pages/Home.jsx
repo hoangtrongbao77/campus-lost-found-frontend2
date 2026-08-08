@@ -1,302 +1,294 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import API from '../api/axios';
 
 const Home = () => {
-  const navigate = useNavigate(); // Hook chuyển hướng trang
-
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  // Bộ lọc
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     fetchItems();
   }, []);
 
   const fetchItems = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
       const res = await API.get('/items');
-      const data = res.data.data || res.data;
+      console.log('Dữ liệu từ API Backend:', res.data);
 
-      const sortedData = Array.isArray(data)
-        ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        : [];
+      // Nhận diện dữ liệu linh hoạt (res.data.items hoặc res.data.data hoặc res.data)
+      const rawData = res.data?.items || res.data?.data || res.data;
 
-      setItems(sortedData);
-    } catch (error) {
-      console.error('Lỗi tải bài đăng:', error);
+      if (Array.isArray(rawData)) {
+        setItems(rawData);
+      } else {
+        setItems([]);
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách:', err);
+      setError('Không thể kết nối đến máy chủ!');
     } finally {
       setLoading(false);
     }
   };
 
-  const getAuthorName = (item) => {
-    if (item.user && typeof item.user === 'object') {
-      const name = item.user.fullName || item.user.name || item.user.username;
-      if (name) return name;
-      if (item.user.email) return item.user.email.split('@')[0];
-    }
-    if (item.authorName) return item.authorName;
-    return 'Người dùng';
-  };
-
+  // Logic lọc bài viết
   const filteredItems = items.filter((item) => {
-    const matchSearch =
-      item.title?.toLowerCase().includes(search.toLowerCase()) ||
-      item.description?.toLowerCase().includes(search.toLowerCase()) ||
-      item.location?.toLowerCase().includes(search.toLowerCase());
+    const title = (item.title || item.itemName || '').toLowerCase();
+    const location = (item.location || item.place || '').toLowerCase();
+    const description = (item.description || item.content || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
 
-    const matchType = typeFilter ? item.type === typeFilter : true;
-    const matchCategory = categoryFilter ? item.category === categoryFilter : true;
+    // Lọc theo từ khóa
+    const matchesSearch =
+      title.includes(search) || location.includes(search) || description.includes(search);
 
-    return matchSearch && matchType && matchCategory;
+    // Lọc theo loại tin (lost/found)
+    const itemType = item.type || item.postType;
+    const matchesType =
+      selectedType === 'all' || !selectedType || itemType === selectedType;
+
+    // Lọc theo danh mục
+    const itemCategory = item.category || item.cat || 'Khác';
+    const matchesCategory =
+      selectedCategory === 'all' ||
+      !selectedCategory ||
+      itemCategory.trim().toLowerCase() === selectedCategory.trim().toLowerCase();
+
+    return matchesSearch && matchesType && matchesCategory;
   });
 
   return (
     <div style={styles.container}>
+      {/* THANH TÌM KIẾM VÀ BỘ LỌC */}
       <div style={styles.filterCard}>
-        <input
-          type="text"
-          placeholder="🔍 Tìm kiếm theo tên đồ vật, vị trí..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={styles.searchInput}
-        />
+        <div style={styles.searchBox}>
+          <span style={styles.searchIcon}>🔍</span>
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên đồ vật, vị trí..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={styles.searchInput}
+          />
+        </div>
 
         <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          style={styles.selectFilter}
+          value={selectedType}
+          onChange={(e) => setSelectedType(e.target.value)}
+          style={styles.select}
         >
-          <option value="">--- Tất cả loại tin ---</option>
-          <option value="lost">🔴 Cần tìm đồ</option>
-          <option value="found">🟢 Nhặt được đồ</option>
+          <option value="all">--- Tất cả loại tin ---</option>
+          <option value="lost">🔴 Tin Mất Đồ</option>
+          <option value="found">🟢 Tin Nhặt Được</option>
         </select>
 
         <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          style={styles.selectFilter}
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          style={styles.select}
         >
-          <option value="">--- Tất cả danh mục ---</option>
-          <option value="Thiết bị điện tử">Thiết bị điện tử</option>
+          <option value="all">--- Tất cả danh mục ---</option>
           <option value="Giấy tờ cá nhân">Giấy tờ cá nhân</option>
-          <option value="Ví / Tiền mặt">Ví / Tiền mặt</option>
-          <option value="Chìa khóa">Chìa khóa</option>
-          <option value="Balo / Túi xách">Balo / Túi xách</option>
-          <option value="Đồ dùng học tập">Đồ dùng học tập</option>
+          <option value="Thiết bị điện tử">Thiết bị điện tử</option>
+          <option value="Ví / Bóp">Ví / Bóp</option>
+          <option value="Chìa khóa / Thẻ xe">Chìa khóa / Thẻ xe</option>
           <option value="Khác">Khác</option>
         </select>
       </div>
 
-      <div style={styles.feedContainer}>
-        {loading ? (
-          <div style={styles.emptyText}>Đang tải bài đăng...</div>
-        ) : filteredItems.length === 0 ? (
-          <div style={styles.emptyText}>Không tìm thấy bài đăng phù hợp.</div>
-        ) : (
-          filteredItems.map((item) => {
-            const authorName = getAuthorName(item);
-            const firstLetter = authorName.charAt(0).toUpperCase();
+      {/* DANG SÁCH BÀI ĐĂNG */}
+      {loading ? (
+        <div style={styles.centerText}>⏳ Đang tải bài viết...</div>
+      ) : error ? (
+        <div style={{ ...styles.centerText, color: '#ef4444' }}>{error}</div>
+      ) : filteredItems.length > 0 ? (
+        <div style={styles.grid}>
+          {filteredItems.map((item) => {
+            const itemId = item._id || item.id;
+            const itemTitle = item.title || item.itemName || 'Bài đăng không tên';
+            const itemType = item.type || item.postType || 'lost';
+            const itemCategory = item.category || 'Khác';
+            const itemLocation = item.location || 'Chưa cập nhật';
+            const itemImage =
+              item.imageUrl || item.image || (Array.isArray(item.images) ? item.images[0] : null);
+            const itemDate = item.date || item.createdAt;
 
             return (
-              <div
-                key={item._id}
-                style={styles.postCard}
-                onClick={() => navigate(`/items/${item._id}`)} // 👈 Bấm vào card chuyển đến trang chi tiết
-              >
-                <div style={styles.postHeader}>
-                  <div style={styles.userInfo}>
-                    <div style={styles.avatar}>
-                      {item.user?.avatar ? (
-                        <img src={item.user.avatar} alt="Avatar" style={styles.avatarImg} />
-                      ) : (
-                        <span style={styles.avatarText}>{firstLetter}</span>
-                      )}
-                    </div>
-                    <div>
-                      <div style={styles.authorName}>{authorName}</div>
-                      <div style={styles.postDate}>
-                        {new Date(item.createdAt || Date.now()).toLocaleDateString('vi-VN')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <span
-                    style={{
-                      ...styles.badge,
-                      ...(item.type === 'lost' ? styles.badgeLost : styles.badgeFound),
-                    }}
-                  >
-                    {item.type === 'lost' ? '🔴 Cần tìm đồ' : '🟢 Nhặt được đồ'}
-                  </span>
+              <Link to={`/items/${itemId}`} key={itemId} style={styles.card}>
+                <div style={styles.imageBox}>
+                  {itemImage ? (
+                    <img src={itemImage} alt={itemTitle} style={styles.image} />
+                  ) : (
+                    <div style={styles.noImg}>📷 Không có hình ảnh</div>
+                  )}
                 </div>
 
-                <div style={styles.postBody}>
-                  <h3 style={styles.postTitle}>{item.title}</h3>
-                  <p style={styles.postDescription}>{item.description}</p>
+                <div style={styles.cardBody}>
+                  <div style={styles.badgeRow}>
+                    <span
+                      style={{
+                        ...styles.typeBadge,
+                        backgroundColor: itemType === 'lost' ? '#fee2e2' : '#dcfce7',
+                        color: itemType === 'lost' ? '#dc2626' : '#16a34a',
+                      }}
+                    >
+                      {itemType === 'lost' ? '🔴 Tin Mất Đồ' : '🟢 Tin Nhặt Được'}
+                    </span>
+                    <span style={styles.catBadge}>{itemCategory}</span>
+                  </div>
 
-                  <div style={styles.postMeta}>
-                    <span style={styles.metaItem}>📍 {item.location}</span>
-                    <span style={styles.metaItem}>🏷️ {item.category}</span>
+                  <h3 style={styles.cardTitle}>{itemTitle}</h3>
+
+                  <div style={styles.infoRow}>
+                    <span>📍 Địa điểm: {itemLocation}</span>
+                  </div>
+
+                  <div style={styles.infoRow}>
+                    <span>
+                      📅 Ngày:{' '}
+                      {itemDate ? new Date(itemDate).toLocaleDateString('vi-VN') : 'Mới đây'}
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ) : (
+        <div style={styles.centerText}>
+          <p style={{ color: '#64748b' }}>Không tìm thấy bài đăng phù hợp.</p>
+        </div>
+      )}
     </div>
   );
 };
 
 const styles = {
   container: {
-    maxWidth: '720px',
+    maxWidth: '1100px',
     margin: '0 auto',
-    padding: '25px 15px',
+    padding: '20px 15px',
   },
   filterCard: {
     backgroundColor: '#ffffff',
-    padding: '16px',
+    padding: '16px 20px',
     borderRadius: '12px',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+    border: '1px solid #e2e8f0',
     display: 'flex',
-    gap: '10px',
-    marginBottom: '25px',
+    gap: '12px',
     flexWrap: 'wrap',
+    alignItems: 'center',
+    marginBottom: '24px',
+  },
+  searchBox: {
+    flex: '1 1 280px',
+    display: 'flex',
+    alignItems: 'center',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    padding: '0 12px',
+    backgroundColor: '#fff',
+  },
+  searchIcon: {
+    marginRight: '8px',
+    color: '#94a3b8',
   },
   searchInput: {
-    flex: '2',
-    minWidth: '200px',
-    padding: '10px 14px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    fontSize: '14px',
+    width: '100%',
+    padding: '10px 0',
+    border: 'none',
     outline: 'none',
+    fontSize: '14px',
   },
-  selectFilter: {
-    flex: '1',
-    minWidth: '140px',
+  select: {
     padding: '10px 12px',
     borderRadius: '8px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid #cbd5e1',
     fontSize: '14px',
     outline: 'none',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
+    cursor: 'pointer',
   },
-  feedContainer: {
-    display: 'flex',
-    flexDirection: 'column',
+  centerText: {
+    textAlign: 'center',
+    padding: '60px 20px',
+    fontSize: '15px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
     gap: '20px',
   },
-  postCard: {
+  card: {
     backgroundColor: '#ffffff',
-    borderRadius: '14px',
-    padding: '20px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.05)',
-    border: '1px solid #f1f5f9',
-    cursor: 'pointer', // 👈 Hiệu ứng bàn tay khi di chuột vào
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-  },
-  postHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '14px',
-    paddingBottom: '12px',
-    borderBottom: '1px solid #f8fafc',
-  },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  avatar: {
-    width: '42px',
-    height: '42px',
-    borderRadius: '50%',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontWeight: 'bold',
-    fontSize: '18px',
+    borderRadius: '12px',
+    border: '1px solid #e2e8f0',
     overflow: 'hidden',
+    textDecoration: 'none',
+    color: 'inherit',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+    transition: 'transform 0.2s, box-shadow 0.2s',
   },
-  avatarImg: {
+  imageBox: {
+    height: '180px',
+    backgroundColor: '#f8fafc',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
   },
-  avatarText: {
-    lineHeight: 1,
-  },
-  authorName: {
-    fontWeight: '700',
-    fontSize: '15px',
-    color: '#1e293b',
-  },
-  postDate: {
-    fontSize: '12px',
+  noImg: {
     color: '#94a3b8',
-    marginTop: '2px',
+    fontSize: '13px',
   },
-  badge: {
-    padding: '5px 12px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600',
+  cardBody: {
+    padding: '16px',
   },
-  badgeLost: {
-    backgroundColor: '#fef2f2',
-    color: '#dc2626',
-  },
-  badgeFound: {
-    backgroundColor: '#f0fdf4',
-    color: '#16a34a',
-  },
-  postBody: {
+  badgeRow: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    gap: '6px',
+    marginBottom: '10px',
   },
-  postTitle: {
-    margin: 0,
-    fontSize: '18px',
+  typeBadge: {
+    fontSize: '11px',
+    fontWeight: '700',
+    padding: '3px 8px',
+    borderRadius: '6px',
+  },
+  catBadge: {
+    fontSize: '11px',
+    fontWeight: '600',
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
+    padding: '3px 8px',
+    borderRadius: '6px',
+  },
+  cardTitle: {
+    fontSize: '16px',
     fontWeight: '700',
     color: '#0f172a',
+    margin: '0 0 10px 0',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
-  postDescription: {
-    margin: '4px 0 10px 0',
-    fontSize: '14px',
-    color: '#475569',
-    lineHeight: '1.5',
-  },
-  postMeta: {
-    display: 'flex',
-    gap: '15px',
+  infoRow: {
     fontSize: '13px',
     color: '#64748b',
-    backgroundColor: '#f8fafc',
-    padding: '8px 12px',
-    borderRadius: '8px',
-  },
-  metaItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  emptyText: {
-    textAlign: 'center',
-    padding: '40px',
-    color: '#64748b',
-    fontSize: '15px',
+    marginTop: '4px',
   },
 };
 
