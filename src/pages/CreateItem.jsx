@@ -24,47 +24,31 @@ export default function CreateItem() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    let newErrors = {};
+  e.preventDefault();
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Vui lòng nhập Tiêu đề bài đăng!';
-    } else if (formData.title.trim().length < 6) {
-      newErrors.title = 'Tiêu đề cần ít nhất 6 ký tự để mô tả rõ đồ vật!';
-    }
+  const token = localStorage.getItem('token');
 
-    if (!formData.category) {
-      newErrors.category = 'Vui lòng chọn Danh mục đồ vật!';
-    }
+  // Kiểm tra token trước khi gửi
+  if (!token) {
+    alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+    window.location.href = '/login';
+    return;
+  }
 
-    if (!formData.location.trim()) {
-      newErrors.location = 'Vui lòng nhập Vị trí rơi / nhặt được!';
-    }
+  try {
+    const res = await API.post('/items', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`, // 👈 Đính kèm token xác thực tại đây
+      },
+    });
 
-    if (!formData.description.trim()) {
-      newErrors.description = 'Vui lòng viết thêm chi tiết mô tả!';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      setToast({ type: 'warning', message: 'Vui lòng hoàn thành các trường bắt buộc!' });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await API.post('/items', formData);
-      setToast({ type: 'success', message: 'Đăng tin thành công!' });
-      setTimeout(() => navigate('/'), 1200);
-    } catch (err) {
-      setToast({
-        type: 'error',
-        message: err.response?.data?.message || 'Không thể tạo bài đăng!',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    alert('Đăng tin thành công!');
+    window.location.href = '/';
+  } catch (error) {
+    console.error('Lỗi đăng tin:', error);
+    alert(error.response?.data?.message || 'Đăng tin thất bại!');
+  }
+};
 
   return (
     <div className="max-w-xl mx-auto p-4 md:p-6">
