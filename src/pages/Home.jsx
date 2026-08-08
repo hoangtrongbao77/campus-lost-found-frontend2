@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 
 const Home = () => {
+  const navigate = useNavigate(); // Hook chuyển hướng trang
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +34,6 @@ const Home = () => {
     }
   };
 
-  // Hàm trích xuất tên tác giả đa tầng
   const getAuthorName = (item) => {
     if (item.user && typeof item.user === 'object') {
       const name = item.user.fullName || item.user.name || item.user.username;
@@ -102,7 +104,11 @@ const Home = () => {
             const firstLetter = authorName.charAt(0).toUpperCase();
 
             return (
-              <div key={item._id} style={styles.postCard}>
+              <div
+                key={item._id}
+                style={styles.postCard}
+                onClick={() => navigate(`/items/${item._id}`)} // 👈 Bấm vào card chuyển đến trang chi tiết
+              >
                 <div style={styles.postHeader}>
                   <div style={styles.userInfo}>
                     <div style={styles.avatar}>
@@ -194,6 +200,8 @@ const styles = {
     padding: '20px',
     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.05)',
     border: '1px solid #f1f5f9',
+    cursor: 'pointer', // 👈 Hiệu ứng bàn tay khi di chuột vào
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
   },
   postHeader: {
     display: 'flex',

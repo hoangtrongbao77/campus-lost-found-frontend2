@@ -1,127 +1,269 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 
-export default function ItemDetail() {
+const ItemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [item, setItem] = useState(null);
-  const [matches, setMatches] = useState([]); // State lưu bài đăng gợi ý
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchItemAndMatches();
+    fetchItemDetail();
   }, [id]);
 
-  const fetchItemAndMatches = async () => {
+  const fetchItemDetail = async () => {
     try {
       setLoading(true);
-      // Gọi song song API lấy Chi tiết bài đăng & Bài đăng trùng khớp
-      const [itemRes, matchesRes] = await Promise.all([
-        API.get(`/items/${id}`),
-        API.get(`/items/${id}/matches`),
-      ]);
-
-      setItem(itemRes.data);
-      setMatches(matchesRes.data);
+      const res = await API.get(`/items/${id}`);
+      setItem(res.data.data || res.data);
     } catch (err) {
-      console.error('Lỗi khi tải chi tiết bài đăng:', err);
+      console.error('Lỗi tải chi tiết bài viết:', err);
+      setError('Không tìm thấy bài đăng hoặc bài viết đã bị xóa!');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center py-20 font-bold text-gray-500">⏳ Đang tải thông tin...</div>;
+    return <div style={styles.loading}>Đang tải chi tiết bài đăng...</div>;
   }
 
-  if (!item) {
-    return <div className="text-center py-20 text-red-500 font-bold">⚠️ Bài đăng không tồn tại!</div>;
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-      {/* 📄 BÀI ĐĂNG CHI TIẾT HIỆN TẠI */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-        <div className="flex justify-between items-start gap-2">
-          <span
-            className={`text-xs font-bold px-3 py-1 rounded-full ${
-              item.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-            }`}
-          >
-            {item.type === 'lost' ? '🔴 Cần tìm đồ thất lạc' : '🟢 Đã nhặt được đồ'}
-          </span>
-          <span className="text-xs text-gray-400">
-            {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-          </span>
-        </div>
-
-        <h1 className="text-2xl font-bold text-gray-800">{item.title}</h1>
-        <p className="text-gray-600 text-sm leading-relaxed">{item.description}</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t border-gray-100 text-xs text-gray-600">
-          <p>📍 <strong>Địa điểm:</strong> {item.location}</p>
-          <p>🏷️ <strong>Danh mục:</strong> {item.category}</p>
-          <p>👤 <strong>Người đăng:</strong> {item.user?.fullName || 'Sinh viên'}</p>
-          <p>📞 <strong>SĐT liên hệ:</strong> {item.user?.phoneNumber || 'Chưa cung cấp'}</p>
+  if (error || !item) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorCard}>
+          <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: 'bold' }}>{error}</p>
+          <button onClick={() => navigate('/')} style={styles.backBtn}>
+            ⬅ Quay lại Trang chủ
+          </button>
         </div>
       </div>
+    );
+  }
 
-      {/* 🎯 KHUNG SMART MATCH: GỢI Ý BÀI ĐĂNG CÓ THỂ TRÙNG KHỚP */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 space-y-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">⚡</span>
-          <h2 className="text-lg font-bold text-gray-800">
-            Gợi Ý Trùng Khớp Tự Động ({matches.length})
-          </h2>
-        </div>
-        <p className="text-xs text-gray-500">
-          Hệ thống phát hiện các bài đăng đối ứng có cùng danh mục và từ khóa liên quan:
-        </p>
+  const authorName =
+    item.user?.fullName ||
+    item.user?.name ||
+    item.user?.username ||
+    item.authorName ||
+    'Người dùng';
+  const firstLetter = authorName.charAt(0).toUpperCase();
 
-        {matches.length === 0 ? (
-          <div className="bg-white/80 p-4 rounded-xl text-center text-xs text-gray-500">
-            Hệ thống chưa tìm thấy bài đăng nào có dấu hiệu trùng khớp.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {matches.map((matchItem) => (
-              <div
-                key={matchItem._id}
-                className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition space-y-2 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-md">
-                      ✨ Khớp {item.category}
-                    </span>
-                    <span className="text-[10px] text-gray-400">
-                      {new Date(matchItem.createdAt).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-sm text-gray-800 line-clamp-1">
-                    {matchItem.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 line-clamp-2 mt-1">
-                    {matchItem.description}
-                  </p>
-                </div>
+  return (
+    <div style={styles.container}>
+      <button onClick={() => navigate('/')} style={styles.backBtn}>
+        ⬅ Quay lại Trang chủ
+      </button>
 
-                <div className="pt-2 border-t border-gray-50 flex justify-between items-center text-xs">
-                  <span className="text-gray-400 truncate max-w-[150px]">📍 {matchItem.location}</span>
-                  <Link
-                    to={`/items/${matchItem._id}`}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded-lg text-[11px] transition"
-                  >
-                    Xem chi tiết →
-                  </Link>
-                </div>
+      <div style={styles.card}>
+        {/* Header: Avatar, Tên & Loại tin */}
+        <div style={styles.header}>
+          <div style={styles.userInfo}>
+            <div style={styles.avatar}>
+              {item.user?.avatar ? (
+                <img src={item.user.avatar} alt="Avatar" style={styles.avatarImg} />
+              ) : (
+                <span style={styles.avatarText}>{firstLetter}</span>
+              )}
+            </div>
+            <div>
+              <div style={styles.authorName}>{authorName}</div>
+              <div style={styles.date}>
+                Đăng ngày: {new Date(item.createdAt || Date.now()).toLocaleDateString('vi-VN')}
               </div>
-            ))}
+            </div>
           </div>
-        )}
+
+          <span
+            style={{
+              ...styles.badge,
+              ...(item.type === 'lost' ? styles.badgeLost : styles.badgeFound),
+            }}
+          >
+            {item.type === 'lost' ? '🔴 Cần tìm đồ' : '🟢 Nhặt được đồ'}
+          </span>
+        </div>
+
+        {/* Tiêu đề & Thông tin cơ bản */}
+        <h1 style={styles.title}>{item.title}</h1>
+
+        <div style={styles.infoBox}>
+          <div style={styles.infoItem}>
+            📍 <strong>Vị trí:</strong> {item.location}
+          </div>
+          <div style={styles.infoItem}>
+            🏷️ <strong>Danh mục:</strong> {item.category}
+          </div>
+          <div style={styles.infoItem}>
+            📌 <strong>Trạng thái:</strong>{' '}
+            {item.status === 'resolved' ? '✅ Đã hoàn tất' : '⏳ Đang tìm / Chưa trả'}
+          </div>
+        </div>
+
+        {/* Nội dung mô tả */}
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>📄 Mô tả chi tiết</h3>
+          <p style={styles.description}>{item.description}</p>
+        </div>
+
+        {/* Thông tin liên hệ */}
+        <div style={styles.contactBox}>
+          <h3 style={styles.sectionTitle}>📞 Thông tin liên hệ người đăng</h3>
+          {item.user?.email ? (
+            <p style={styles.contactItem}>✉️ Email: <strong>{item.user.email}</strong></p>
+          ) : (
+            <p style={styles.contactItem}>
+              Vui lòng trao đổi trực tiếp hoặc kiểm tra tài khoản liên hệ của tác giả.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+const styles = {
+  container: {
+    maxWidth: '720px',
+    margin: '30px auto',
+    padding: '0 15px',
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '50px',
+    fontSize: '16px',
+    color: '#64748b',
+  },
+  backBtn: {
+    backgroundColor: '#ffffff',
+    border: '1px solid #cbd5e1',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: '20px',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    padding: '28px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+    border: '1px solid #f1f5f9',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px',
+    paddingBottom: '15px',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  userInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  avatar: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontWeight: 'bold',
+    fontSize: '20px',
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  avatarText: {
+    lineHeight: 1,
+  },
+  authorName: {
+    fontWeight: '700',
+    fontSize: '16px',
+    color: '#0f172a',
+  },
+  date: {
+    fontSize: '12px',
+    color: '#94a3b8',
+    marginTop: '2px',
+  },
+  badge: {
+    padding: '6px 14px',
+    borderRadius: '20px',
+    fontSize: '13px',
+    fontWeight: '600',
+  },
+  badgeLost: {
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+  },
+  badgeFound: {
+    backgroundColor: '#f0fdf4',
+    color: '#16a34a',
+  },
+  title: {
+    fontSize: '24px',
+    fontWeight: '800',
+    color: '#0f172a',
+    margin: '0 0 20px 0',
+  },
+  infoBox: {
+    backgroundColor: '#f8fafc',
+    padding: '16px',
+    borderRadius: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginBottom: '24px',
+  },
+  infoItem: {
+    fontSize: '14px',
+    color: '#334155',
+  },
+  section: {
+    marginBottom: '24px',
+  },
+  sectionTitle: {
+    fontSize: '16px',
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: '10px',
+  },
+  description: {
+    fontSize: '15px',
+    color: '#475569',
+    lineHeight: '1.6',
+    whiteSpace: 'pre-line',
+  },
+  contactBox: {
+    backgroundColor: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    padding: '18px',
+    borderRadius: '12px',
+  },
+  contactItem: {
+    margin: 0,
+    fontSize: '14px',
+    color: '#166534',
+  },
+  errorCard: {
+    backgroundColor: '#ffffff',
+    padding: '30px',
+    borderRadius: '12px',
+    textAlign: 'center',
+  },
+};
+
+export default ItemDetail;
