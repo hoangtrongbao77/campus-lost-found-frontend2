@@ -4,7 +4,7 @@ import API from '../api/axios';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [formData, setFormData] = useState({ account: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -18,10 +18,17 @@ const Login = () => {
     setError('');
 
     try {
-      const res = await API.post('/auth/login', formData);
+      // 🟢 Gửi cả 'email' lẫn 'username' để tương thích với kiểm tra của Backend
+      const payload = {
+        email: formData.account,
+        username: formData.account,
+        password: formData.password,
+      };
+
+      const res = await API.post('/auth/login', payload);
       const data = res.data;
 
-      // Lưu Token và thông tin User vào LocalStorage
+      // Lưu Token và dữ liệu User vào LocalStorage
       const token = data.token || data.accessToken;
       if (token) localStorage.setItem('token', token);
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
@@ -30,7 +37,9 @@ const Login = () => {
       window.location.href = '/';
     } catch (err) {
       console.error('Lỗi đăng nhập:', err);
-      setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản, mật khẩu!');
+      setError(
+        err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản, mật khẩu!'
+      );
     } finally {
       setLoading(false);
     }
@@ -48,10 +57,10 @@ const Login = () => {
             <label style={styles.label}>Tài khoản / Email:</label>
             <input
               type="text"
-              name="username"
-              value={formData.username}
+              name="account"
+              value={formData.account}
               onChange={handleChange}
-              placeholder="Nhập tên tài khoản hoặc email..."
+              placeholder="Nhập email hoặc tên tài khoản..."
               required
               style={styles.input}
             />
