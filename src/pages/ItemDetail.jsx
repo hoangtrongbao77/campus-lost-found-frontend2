@@ -14,38 +14,60 @@ const ItemDetail = () => {
       setLoading(true);
       setError('');
       try {
-        // 1. Lấy chi tiết bài viết hiện tại
+        // 1. Lấy chi tiết bài viết
         const res = await API.get(`/items/${id}`);
-        const currentItem = res.data.item || res.data;
-        setItem(currentItem);
+        // Tự động nhận diện cấu trúc API (res.data.item hoặc res.data.data hoặc res.data)
+        const rawItem = res.data?.item || res.data?.data || res.data;
+        
+        console.log('Dữ liệu bài viết nhận từ Backend:', rawItem);
 
-        // 2. Lấy toàn bộ danh sách bài viết để lọc gợi ý
-        const allRes = await API.get('/items');
-        const allItems = allRes.data.items || allRes.data || [];
-
-        // Lọc bỏ bài viết đang xem
-        const otherItems = allItems.filter(
-          (i) => (i._id || i.id) !== id && (i._id || i.id) !== currentItem._id
-        );
-
-        const currentCategory = (currentItem.category || 'Khác').trim().toLowerCase();
-
-        // 🌟 TẦNG 1: Lọc bài viết cùng Danh mục
-        let matched = otherItems.filter(
-          (i) => (i.category || 'Khác').trim().toLowerCase() === currentCategory
-        );
-
-        // 🌟 TẦNG 2: Nếu không có bài cùng danh mục, gợi ý bài cùng Loại (Tin Mất / Tin Nhặt)
-        if (matched.length === 0) {
-          matched = otherItems.filter((i) => i.type === currentItem.type);
+        if (!rawItem || typeof rawItem !== 'object') {
+          setError('Không tìm thấy dữ liệu bài viết!');
+          return;
         }
 
-        // 🌟 TẦNG 3: Nếu vẫn chưa có, lấy các bài viết mới nhất khác
+        // Chuẩn hóa dữ liệu bài viết hiện tại (Tất cả các tên trường có thể có)
+        const normalizedItem = {
+          ...rawItem,
+          title: rawItem.title || rawItem.itemName || rawItem.name || rawItem.topic || 'Bài đăng không tên',
+          description: rawItem.description || rawItem.content || rawItem.desc || rawItem.details || '',
+          location: rawItem.location || rawItem.place || rawItem.address || rawItem.area || '',
+          category: rawItem.category || rawItem.cat || rawItem.categoryName || 'Khác',
+          type: rawItem.type || rawItem.postType || rawItem.status || 'lost',
+          image: rawItem.imageUrl || rawItem.image || (Array.isArray(rawItem.images) ? rawItem.images[0] : rawItem.images) || '',
+          phone: rawItem.phone || rawItem.contactPhone || rawItem.phoneNumber || rawItem.user?.phone || rawItem.user?.phoneNumber || '',
+          contactName: rawItem.user?.fullName || rawItem.user?.name || rawItem.contactName || rawItem.author || rawItem.userName || '',
+          studentId: rawItem.user?.studentId || rawItem.user?.username || rawItem.studentId || rawItem.msv || '',
+          date: rawItem.date || rawItem.createdAt || rawItem.lostDate || rawItem.foundDate || '',
+        };
+
+        setItem(normalizedItem);
+
+        // 2. Lấy danh sách tất cả bài viết để làm Bài viết gợi ý
+        const allRes = await API.get('/items');
+        const rawAll = allRes.data?.items || allRes.data?.data || allRes.data || [];
+        const allItems = Array.isArray(rawAll) ? rawAll : [];
+
+        // Lọc bỏ bài hiện tại
+        const otherItems = allItems.filter(
+          (i) => (i._id || i.id) !== id && (i._id || i.id) !== normalizedItem._id
+        );
+
+        const currentCat = normalizedItem.category.trim().toLowerCase();
+
+        // Ưu tiên 1: Cùng danh mục -> Ưu tiên 2: Cùng loại tin -> Ưu tiên 3: Các bài khác
+        let matched = otherItems.filter(
+          (i) => ((i.category || i.cat || 'Khác').trim().toLowerCase() === currentCat)
+        );
+
+        if (matched.length === 0) {
+          matched = otherItems.filter((i) => (i.type || i.postType) === normalizedItem.type);
+        }
+
         if (matched.length === 0) {
           matched = otherItems;
         }
 
-        // Lấy tối đa 4 bài viết gợi ý
         setRelatedItems(matched.slice(0, 4));
       } catch (err) {
         console.error('Lỗi lấy chi tiết bài viết:', err);
@@ -75,23 +97,17 @@ const ItemDetail = () => {
     );
   }
 
-  const categoryName = item.category || 'Khác';
-
   return (
     <div style={styles.container}>
       <Link to="/" style={styles.backLink}>
         ← Quay lại danh sách
       </Link>
 
-      {/* KHU VỰC CHI TIẾT BÀI VIẾT */}
+      {/* CHI TIẾT BÀI VIẾT */}
       <div style={styles.card}>
         <div style={styles.imageBox}>
-          {item.imageUrl || item.image ? (
-            <img
-              src={item.imageUrl || item.image}
-              alt={item.title || 'Ảnh sản phẩm'}
-              style={styles.image}
-            />
+          {item.image ? (
+            <img src={item.image} alt={item.title} style={styles.image} />
           ) : (
             <div style={styles.noImg}>📷 Không có hình ảnh</div>
           )}
@@ -108,10 +124,10 @@ const ItemDetail = () => {
             >
               {item.type === 'lost' ? '🔴 Tin Mất Đồ' : '🟢 Tin Nhặt Được'}
             </span>
-            <span style={styles.categoryBadge}>{categoryName}</span>
+            <span style={styles.categoryBadge}>{item.category}</span>
           </div>
 
-          <h1 style={styles.title}>{item.title || 'Bài đăng không tên'}</h1>
+          <h1 style={styles.title}>{item.title}</h1>
 
           <div style={styles.detailRow}>
             <strong>📍 Địa điểm:</strong> {item.location || 'Chưa cập nhật'}
@@ -135,21 +151,21 @@ const ItemDetail = () => {
               👤 Thông tin liên hệ:
             </h3>
             <p style={{ margin: '4px 0', color: '#334155' }}>
-              <strong>Người đăng:</strong> {item.user?.fullName || item.contactName || 'Người dùng'}
+              <strong>Người đăng:</strong> {item.contactName || 'Người dùng'}
             </p>
-            {item.user?.studentId && (
+            {item.studentId && (
               <p style={{ margin: '4px 0', color: '#334155' }}>
-                <strong>MSV:</strong> {item.user.studentId}
+                <strong>MSV:</strong> {item.studentId}
               </p>
             )}
             <p style={{ margin: '4px 0', color: '#334155' }}>
               <strong>Số điện thoại/Zalo:</strong>{' '}
-              {item.phone || item.contactPhone ? (
+              {item.phone ? (
                 <a
-                  href={`tel:${item.phone || item.contactPhone}`}
+                  href={`tel:${item.phone}`}
                   style={{ color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}
                 >
-                  {item.phone || item.contactPhone}
+                  {item.phone}
                 </a>
               ) : (
                 <span style={{ color: '#94a3b8' }}>Chưa cung cấp</span>
@@ -159,44 +175,47 @@ const ItemDetail = () => {
         </div>
       </div>
 
-      {/* KHU VỰC BÀI VIẾT GỢI Ý */}
+      {/* BÀI VIẾT GỢI Ý */}
       <div style={styles.relatedSection}>
         <h2 style={styles.relatedTitle}>💡 Bài viết gợi ý phù hợp</h2>
 
         {relatedItems.length > 0 ? (
           <div style={styles.grid}>
-            {relatedItems.map((rel) => (
-              <Link
-                key={rel._id || rel.id}
-                to={`/items/${rel._id || rel.id}`}
-                style={styles.gridCard}
-              >
-                <div style={styles.gridImgBox}>
-                  {rel.imageUrl || rel.image ? (
-                    <img
-                      src={rel.imageUrl || rel.image}
-                      alt={rel.title}
-                      style={styles.gridImg}
-                    />
-                  ) : (
-                    <div style={styles.gridNoImg}>📷 Không có ảnh</div>
-                  )}
-                </div>
-                <div style={styles.gridInfo}>
-                  <span
-                    style={{
-                      ...styles.miniBadge,
-                      backgroundColor: rel.type === 'lost' ? '#fee2e2' : '#dcfce7',
-                      color: rel.type === 'lost' ? '#dc2626' : '#16a34a',
-                    }}
-                  >
-                    {rel.type === 'lost' ? 'Mất đồ' : 'Nhặt được'}
-                  </span>
-                  <h4 style={styles.gridTitle}>{rel.title || 'Chưa có tiêu đề'}</h4>
-                  <p style={styles.gridLocation}>📍 {rel.location || 'Toàn trường'}</p>
-                </div>
-              </Link>
-            ))}
+            {relatedItems.map((rel) => {
+              const relTitle = rel.title || rel.itemName || rel.name || 'Chưa có tiêu đề';
+              const relLocation = rel.location || rel.place || 'Toàn trường';
+              const relImg = rel.imageUrl || rel.image || (Array.isArray(rel.images) ? rel.images[0] : rel.images);
+              const relType = rel.type || rel.postType || 'lost';
+
+              return (
+                <Link
+                  key={rel._id || rel.id}
+                  to={`/items/${rel._id || rel.id}`}
+                  style={styles.gridCard}
+                >
+                  <div style={styles.gridImgBox}>
+                    {relImg ? (
+                      <img src={relImg} alt={relTitle} style={styles.gridImg} />
+                    ) : (
+                      <div style={styles.gridNoImg}>📷 Không có ảnh</div>
+                    )}
+                  </div>
+                  <div style={styles.gridInfo}>
+                    <span
+                      style={{
+                        ...styles.miniBadge,
+                        backgroundColor: relType === 'lost' ? '#fee2e2' : '#dcfce7',
+                        color: relType === 'lost' ? '#dc2626' : '#16a34a',
+                      }}
+                    >
+                      {relType === 'lost' ? 'Mất đồ' : 'Nhặt được'}
+                    </span>
+                    <h4 style={styles.gridTitle}>{relTitle}</h4>
+                    <p style={styles.gridLocation}>📍 {relLocation}</p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div style={styles.emptyRelated}>Chưa có bài viết liên quan khác.</div>
