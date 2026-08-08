@@ -34,6 +34,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
+      {/* HEADER ĐIỀU HƯỚNG */}
       <header style={styles.header}>
         <div style={styles.headerContainer}>
           <Link to="/" style={styles.logo}>
@@ -45,6 +46,7 @@ function App() {
               + Đăng tin
             </Link>
 
+            {/* NÚT TRANG ADMIN */}
             {isAdmin && (
               <Link to="/admin" style={styles.adminBtn}>
                 🛡️ Trang Admin
@@ -54,7 +56,16 @@ function App() {
             {currentUser ? (
               <div style={styles.userSection}>
                 <Link to="/profile" style={styles.profileLink}>
-                  👤 <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt="Avatar"
+                      style={styles.headerAvatar}
+                    />
+                  ) : (
+                    <span style={{ marginRight: '6px' }}>👤</span>
+                  )}
+                  <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
                 </Link>
                 <button onClick={handleLogout} style={styles.logoutBtn}>
                   Đăng Xuất
@@ -69,6 +80,7 @@ function App() {
         </div>
       </header>
 
+      {/* KHU VỰC ROUTE */}
       <main style={{ padding: '20px 15px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -146,7 +158,16 @@ const styles = {
     borderRadius: '8px',
     backgroundColor: '#f1f5f9',
     border: '1px solid #cbd5e1',
-    display: 'inline-block',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  headerAvatar: {
+    width: '26px',
+    height: '26px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+    marginRight: '8px',
+    border: '1px solid #2563eb',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',
