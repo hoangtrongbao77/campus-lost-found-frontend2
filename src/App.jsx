@@ -4,6 +4,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import CreateItem from './pages/CreateItem';
 import ItemDetail from './pages/ItemDetail';
+import Admin from './pages/Admin';
+import Profile from './pages/Profile';
 
 function App() {
   let currentUser = null;
@@ -21,9 +23,12 @@ function App() {
     window.location.href = '/login';
   };
 
+  // Kiểm tra quyền Admin (chấp nhận role === 'admin' hoặc isAdmin === true)
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
-      {/* HEADER */}
+      {/* HEADER ĐIỀU HƯỚNG */}
       <header style={styles.header}>
         <div style={styles.headerContainer}>
           <Link to="/" style={styles.logo}>
@@ -35,11 +40,18 @@ function App() {
               + Đăng tin
             </Link>
 
+            {/* NÚT TRANG ADMIN: Chỉ hiển thị khi user có quyền Admin */}
+            {isAdmin && (
+              <Link to="/admin" style={styles.adminBtn}>
+                🛡️ Trang Admin
+              </Link>
+            )}
+
             {currentUser ? (
               <div style={styles.userSection}>
-                <span style={styles.welcomeText}>
-                  👤 <strong>{currentUser.fullName || currentUser.name || 'Sinh viên'}</strong>
-                </span>
+                <Link to="/profile" style={styles.profileLink}>
+                  👤 <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
+                </Link>
                 <button onClick={handleLogout} style={styles.logoutBtn}>
                   Đăng Xuất
                 </button>
@@ -53,13 +65,15 @@ function App() {
         </div>
       </header>
 
-      {/* KHU VỰC NỘI DUNG MAIN */}
+      {/* KHU VỰC NỘI DUNG ROUTE */}
       <main style={{ padding: '20px 15px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/create" element={<CreateItem />} />
           <Route path="/items/:id" element={<ItemDetail />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
@@ -106,14 +120,27 @@ const styles = {
     fontWeight: '600',
     fontSize: '14px',
   },
+  adminBtn: {
+    backgroundColor: '#eab308',
+    color: '#ffffff',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '14px',
+  },
   userSection: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
   },
-  welcomeText: {
+  profileLink: {
+    color: '#1e293b',
+    textDecoration: 'none',
     fontSize: '14px',
-    color: '#334155',
+    padding: '6px 10px',
+    borderRadius: '6px',
+    backgroundColor: '#f1f5f9',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',
