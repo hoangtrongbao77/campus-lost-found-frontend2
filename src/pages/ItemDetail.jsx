@@ -14,22 +14,39 @@ const ItemDetail = () => {
       setLoading(true);
       setError('');
       try {
-        // 1. Lấy thông tin chi tiết bài viết
+        // 1. Lấy chi tiết bài viết hiện tại
         const res = await API.get(`/items/${id}`);
         const currentItem = res.data.item || res.data;
         setItem(currentItem);
 
-        // 2. Lấy danh sách bài viết gợi ý cùng Danh mục (Category)
-        if (currentItem && currentItem.category) {
-          const relatedRes = await API.get(`/items?category=${encodeURIComponent(currentItem.category)}`);
-          const allItems = relatedRes.data.items || relatedRes.data || [];
-          
-          // Lọc loại bỏ bài viết đang xem và lấy tối đa 4 bài
-          const filtered = allItems.filter(
-            (i) => (i._id || i.id) !== id && (i._id || i.id) !== currentItem._id
-          );
-          setRelatedItems(filtered.slice(0, 4));
+        // 2. Lấy toàn bộ danh sách bài viết để lọc gợi ý
+        const allRes = await API.get('/items');
+        const allItems = allRes.data.items || allRes.data || [];
+
+        // Lọc bỏ bài viết đang xem
+        const otherItems = allItems.filter(
+          (i) => (i._id || i.id) !== id && (i._id || i.id) !== currentItem._id
+        );
+
+        const currentCategory = (currentItem.category || 'Khác').trim().toLowerCase();
+
+        // 🌟 TẦNG 1: Lọc bài viết cùng Danh mục
+        let matched = otherItems.filter(
+          (i) => (i.category || 'Khác').trim().toLowerCase() === currentCategory
+        );
+
+        // 🌟 TẦNG 2: Nếu không có bài cùng danh mục, gợi ý bài cùng Loại (Tin Mất / Tin Nhặt)
+        if (matched.length === 0) {
+          matched = otherItems.filter((i) => i.type === currentItem.type);
         }
+
+        // 🌟 TẦNG 3: Nếu vẫn chưa có, lấy các bài viết mới nhất khác
+        if (matched.length === 0) {
+          matched = otherItems;
+        }
+
+        // Lấy tối đa 4 bài viết gợi ý
+        setRelatedItems(matched.slice(0, 4));
       } catch (err) {
         console.error('Lỗi lấy chi tiết bài viết:', err);
         setError('Không tìm thấy bài viết hoặc đã có lỗi xảy ra!');
@@ -50,7 +67,7 @@ const ItemDetail = () => {
   if (error || !item) {
     return (
       <div style={styles.centerText}>
-        <p style={{ color: '#ef4444' }}>{error || 'Bài viết không tồn tại!'}</p>
+        <p style={{ color: '#ef4444', fontWeight: '600' }}>{error || 'Bài viết không tồn tại!'}</p>
         <Link to="/" style={styles.backBtn}>
           👈 Quay về trang chủ
         </Link>
@@ -58,19 +75,21 @@ const ItemDetail = () => {
     );
   }
 
+  const categoryName = item.category || 'Khác';
+
   return (
     <div style={styles.container}>
       <Link to="/" style={styles.backLink}>
         ← Quay lại danh sách
       </Link>
 
-      {/* THÔNG TIN CHI TIẾT BÀI VIẾT */}
+      {/* KHU VỰC CHI TIẾT BÀI VIẾT */}
       <div style={styles.card}>
         <div style={styles.imageBox}>
           {item.imageUrl || item.image ? (
             <img
               src={item.imageUrl || item.image}
-              alt={item.title}
+              alt={item.title || 'Ảnh sản phẩm'}
               style={styles.image}
             />
           ) : (
@@ -87,12 +106,12 @@ const ItemDetail = () => {
                 color: item.type === 'lost' ? '#dc2626' : '#16a34a',
               }}
             >
-              {item.type === 'lost' ? '🔴 Tin Nhặt / Nhặt Được' : '🟢 Tin Mất Đồ'}
+              {item.type === 'lost' ? '🔴 Tin Mất Đồ' : '🟢 Tin Nhặt Được'}
             </span>
-            <span style={styles.categoryBadge}>{item.category || 'Khác'}</span>
+            <span style={styles.categoryBadge}>{categoryName}</span>
           </div>
 
-          <h1 style={styles.title}>{item.title}</h1>
+          <h1 style={styles.title}>{item.title || 'Bài đăng không tên'}</h1>
 
           <div style={styles.detailRow}>
             <strong>📍 Địa điểm:</strong> {item.location || 'Chưa cập nhật'}
@@ -110,30 +129,39 @@ const ItemDetail = () => {
 
           <hr style={styles.divider} />
 
-          {/* THÔNG TIN NGUỜI ĐĂNG */}
+          {/* THÔNG TIN LIÊN HỆ */}
           <div style={styles.contactCard}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>👤 Thông tin liên hệ:</h3>
-            <p style={{ margin: '4px 0' }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '15px', color: '#1e293b' }}>
+              👤 Thông tin liên hệ:
+            </h3>
+            <p style={{ margin: '4px 0', color: '#334155' }}>
               <strong>Người đăng:</strong> {item.user?.fullName || item.contactName || 'Người dùng'}
             </p>
             {item.user?.studentId && (
-              <p style={{ margin: '4px 0' }}>
+              <p style={{ margin: '4px 0', color: '#334155' }}>
                 <strong>MSV:</strong> {item.user.studentId}
               </p>
             )}
-            <p style={{ margin: '4px 0' }}>
+            <p style={{ margin: '4px 0', color: '#334155' }}>
               <strong>Số điện thoại/Zalo:</strong>{' '}
-              <a href={`tel:${item.phone || item.contactPhone}`} style={{ color: '#2563eb', fontWeight: 'bold' }}>
-                {item.phone || item.contactPhone || 'Chưa cung cấp'}
-              </a>
+              {item.phone || item.contactPhone ? (
+                <a
+                  href={`tel:${item.phone || item.contactPhone}`}
+                  style={{ color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}
+                >
+                  {item.phone || item.contactPhone}
+                </a>
+              ) : (
+                <span style={{ color: '#94a3b8' }}>Chưa cung cấp</span>
+              )}
             </p>
           </div>
         </div>
       </div>
 
-      {/* BÀI VIẾT GỢI Ý PHÙ HỢP */}
+      {/* KHU VỰC BÀI VIẾT GỢI Ý */}
       <div style={styles.relatedSection}>
-        <h2 style={styles.relatedTitle}>💡 Bài viết gợi ý phù hợp (Cùng danh mục)</h2>
+        <h2 style={styles.relatedTitle}>💡 Bài viết gợi ý phù hợp</h2>
 
         {relatedItems.length > 0 ? (
           <div style={styles.grid}>
@@ -151,20 +179,27 @@ const ItemDetail = () => {
                       style={styles.gridImg}
                     />
                   ) : (
-                    <div style={styles.gridNoImg}>📷 Không ảnh</div>
+                    <div style={styles.gridNoImg}>📷 Không có ảnh</div>
                   )}
                 </div>
                 <div style={styles.gridInfo}>
-                  <h4 style={styles.gridTitle}>{rel.title}</h4>
-                  <p style={styles.gridLocation}>📍 {rel.location || 'Chưa có vị trí'}</p>
+                  <span
+                    style={{
+                      ...styles.miniBadge,
+                      backgroundColor: rel.type === 'lost' ? '#fee2e2' : '#dcfce7',
+                      color: rel.type === 'lost' ? '#dc2626' : '#16a34a',
+                    }}
+                  >
+                    {rel.type === 'lost' ? 'Mất đồ' : 'Nhặt được'}
+                  </span>
+                  <h4 style={styles.gridTitle}>{rel.title || 'Chưa có tiêu đề'}</h4>
+                  <p style={styles.gridLocation}>📍 {rel.location || 'Toàn trường'}</p>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div style={styles.emptyRelated}>
-            Chưa có bài viết nào khác thuộc danh mục <strong>"{item.category}"</strong>.
-          </div>
+          <div style={styles.emptyRelated}>Chưa có bài viết liên quan khác.</div>
         )}
       </div>
     </div>
@@ -186,7 +221,7 @@ const styles = {
   },
   centerText: {
     textAlign: 'center',
-    padding: '50px 20px',
+    padding: '60px 20px',
     fontSize: '16px',
   },
   backBtn: {
@@ -201,16 +236,16 @@ const styles = {
   card: {
     backgroundColor: '#ffffff',
     borderRadius: '12px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
     border: '1px solid #e2e8f0',
     overflow: 'hidden',
     display: 'flex',
     flexWrap: 'wrap',
-    marginBottom: '40px',
+    marginBottom: '32px',
   },
   imageBox: {
     flex: '1 1 350px',
-    minHeight: '300px',
+    minHeight: '280px',
     backgroundColor: '#f8fafc',
     display: 'flex',
     alignItems: 'center',
@@ -219,12 +254,12 @@ const styles = {
   image: {
     width: '100%',
     height: '100%',
-    maxHeight: '400px',
+    maxHeight: '380px',
     objectFit: 'cover',
   },
   noImg: {
     color: '#94a3b8',
-    fontSize: '15px',
+    fontSize: '14px',
   },
   infoBox: {
     flex: '1 1 400px',
@@ -271,7 +306,7 @@ const styles = {
   divider: {
     border: 'none',
     borderTop: '1px solid #e2e8f0',
-    margin: '20px 0',
+    margin: '18px 0',
   },
   contactCard: {
     backgroundColor: '#f8fafc',
@@ -281,7 +316,7 @@ const styles = {
     fontSize: '14px',
   },
   relatedSection: {
-    marginTop: '20px',
+    marginTop: '10px',
   },
   relatedTitle: {
     fontSize: '18px',
@@ -296,11 +331,12 @@ const styles = {
   },
   gridCard: {
     backgroundColor: '#ffffff',
-    borderRadius: '8px',
+    borderRadius: '10px',
     border: '1px solid #e2e8f0',
     overflow: 'hidden',
     textDecoration: 'none',
     color: 'inherit',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
     transition: 'transform 0.2s',
   },
   gridImgBox: {
@@ -322,6 +358,14 @@ const styles = {
   gridInfo: {
     padding: '12px',
   },
+  miniBadge: {
+    fontSize: '10px',
+    fontWeight: '700',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    display: 'inline-block',
+    marginBottom: '6px',
+  },
   gridTitle: {
     fontSize: '14px',
     fontWeight: '700',
@@ -340,9 +384,10 @@ const styles = {
     backgroundColor: '#ffffff',
     padding: '20px',
     borderRadius: '8px',
-    border: '1px border-dashed #cbd5e1',
+    border: '1px dashed #cbd5e1',
     color: '#64748b',
     fontSize: '14px',
+    textAlign: 'center',
   },
 };
 
