@@ -5,7 +5,7 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Lấy thông tin user đã lưu trong localStorage khi tải trang
+    // Đọc thông tin user từ localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
@@ -17,7 +17,6 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    // Xóa Token & User khỏi localStorage và tải lại trang Login
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
@@ -34,18 +33,25 @@ const Navbar = () => {
         {/* Khung menu bên phải */}
         <div style={styles.navRight}>
           {user ? (
-            /* --- GIAO DIỆN KHI ĐÃ ĐĂNG NHẬP --- */
             <div style={styles.userSection}>
-              <span style={styles.greeting}>
-                Chào, <strong>{user.fullName || user.name || 'Sinh viên'}</strong>
-              </span>
+              {/* 1. NÚT VÀO TRANG ADMIN (Chỉ hiển thị khi tài khoản có role === 'admin') */}
+              {user.role === 'admin' && (
+                <Link to="/admin" style={styles.adminBtn}>
+                  🛡️ Trang Admin
+                </Link>
+              )}
 
+              {/* 2. LINK BẤM VÀO TRANG CÁ NHÂN */}
+              <Link to="/profile" style={styles.profileLink} title="Bấm để xem trang cá nhân">
+                👤 Chào, <strong>{user.fullName || user.name || 'Sinh viên'}</strong>
+              </Link>
+
+              {/* 3. NÚT ĐĂNG XUẤT */}
               <button onClick={handleLogout} style={styles.logoutBtn}>
                 Đăng Xuất
               </button>
             </div>
           ) : (
-            /* --- GIAO DIỆN KHI CHƯA ĐĂNG NHẬP --- */
             <div style={styles.authSection}>
               <Link to="/login" style={styles.loginBtn}>
                 Đăng Nhập
@@ -61,7 +67,6 @@ const Navbar = () => {
   );
 };
 
-// Inline Style đồng bộ màu sắc toàn hệ thống
 const styles = {
   header: {
     backgroundColor: '#ffffff',
@@ -95,20 +100,37 @@ const styles = {
   userSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '15px',
+    gap: '12px',
   },
-  greeting: {
+  adminBtn: {
+    backgroundColor: '#f59e0b',
+    color: '#ffffff',
+    padding: '7px 12px',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '13px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  profileLink: {
     fontSize: '14px',
-    color: '#374151',
+    color: '#1e293b',
+    textDecoration: 'none',
+    padding: '7px 12px',
+    borderRadius: '6px',
+    backgroundColor: '#f1f5f9',
+    transition: 'background-color 0.2s',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',
     color: '#ffffff',
     border: 'none',
-    padding: '8px 14px',
+    padding: '7px 12px',
     borderRadius: '6px',
     fontWeight: '600',
-    fontSize: '14px',
+    fontSize: '13px',
     cursor: 'pointer',
   },
   authSection: {
