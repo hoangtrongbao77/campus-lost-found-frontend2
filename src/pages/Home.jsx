@@ -1,18 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 
-export default function Home() {
-  const navigate = useNavigate();
+const Home = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // States lưu giá trị bộ lọc
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedType, setSelectedType] = useState('All');
+  // Bộ lọc
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
-  // Lấy danh sách bài đăng từ Backend
   useEffect(() => {
     fetchItems();
   }, []);
@@ -21,137 +18,278 @@ export default function Home() {
     try {
       setLoading(true);
       const res = await API.get('/items');
-      setItems(res.data);
-    } catch (err) {
-      console.error('Lỗi lấy danh sách bài đăng:', err);
+      const data = res.data.data || res.data;
+
+      // Sắp xếp bài mới nhất lên trên cùng
+      const sortedData = Array.isArray(data)
+        ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        : [];
+
+      setItems(sortedData);
+    } catch (error) {
+      console.error('Lỗi tải bài đăng:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Logic lọc dữ liệu
+  // Lọc bài viết
   const filteredItems = items.filter((item) => {
-    const matchesSearch =
-      item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch =
+      item.title?.toLowerCase().includes(search.toLowerCase()) ||
+      item.description?.toLowerCase().includes(search.toLowerCase()) ||
+      item.location?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesCategory =
-      selectedCategory === 'All' || item.category === selectedCategory;
+    const matchType = typeFilter ? item.type === typeFilter : true;
+    const matchCategory = categoryFilter ? item.category === categoryFilter : true;
 
-    const matchesType = selectedType === 'All' || item.type === selectedType;
-
-    return matchesSearch && matchesCategory && matchesType;
+    return matchSearch && matchType && matchCategory;
   });
 
-  if (loading) {
-    return (
-      <div className="text-center py-20 font-bold text-gray-500">
-        ⏳ Đang tải danh sách bài đăng...
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-      {/* 🔍 THANH TÌM KIẾM VÀ BỘ LỌC */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-3">
-        {/* Ô tìm kiếm */}
+    <div style={styles.container}>
+      {/* Khung Tìm Kiếm & Bộ Lọc */}
+      <div style={styles.filterCard}>
         <input
           type="text"
           placeholder="🔍 Tìm kiếm theo tên đồ vật, vị trí..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={styles.searchInput}
         />
 
-        {/* Lọc loại tin */}
         <select
-          value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          style={styles.selectFilter}
         >
-          <option value="All">--- Tất cả loại tin ---</option>
-          <option value="lost">🔴 Đồ thất lạc (Cần tìm)</option>
-          <option value="found">🟢 Đồ nhặt được</option>
+          <option value="">--- Tất cả loại tin ---</option>
+          <option value="lost">🔴 Cần tìm đồ</option>
+          <option value="found">🟢 Nhặt được đồ</option>
         </select>
 
-        {/* Lọc danh mục */}
         <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          style={styles.selectFilter}
         >
-          <option value="All">--- Tất cả danh mục ---</option>
-          <option value="Ví / Giấy tờ">Ví / Giấy tờ</option>
+          <option value="">--- Tất cả danh mục ---</option>
           <option value="Thiết bị điện tử">Thiết bị điện tử</option>
+          <option value="Giấy tờ cá nhân">Giấy tờ cá nhân</option>
+          <option value="Ví / Tiền mặt">Ví / Tiền mặt</option>
           <option value="Chìa khóa">Chìa khóa</option>
-          <option value="Thẻ sinh viên">Thẻ sinh viên</option>
+          <option value="Balo / Túi xách">Balo / Túi xách</option>
+          <option value="Đồ dùng học tập">Đồ dùng học tập</option>
           <option value="Khác">Khác</option>
         </select>
       </div>
 
-      {/* 📦 DANH SÁCH BÀI ĐĂNG (GRID CO GIÃN RESPONSIVE) */}
-      {filteredItems.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-3">
-          <p className="text-4xl">📭</p>
-          <p className="text-sm font-semibold text-gray-600">
-            Chưa có bài đăng nào phù hợp.
-          </p>
-          <p className="text-xs text-gray-400">
-            Hãy bấm nút bên dưới để tạo bài đăng đầu tiên cho ứng dụng nhé!
-          </p>
-          <button
-            onClick={() => navigate('/create-item')}
-            className="inline-block mt-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm"
-          >
-            + Đăng tin mới ngay
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filteredItems.map((item) => (
-            <div
-              key={item._id}
-              onClick={() => navigate(`/items/${item._id}`)}
-              className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex justify-between items-center mb-2">
+      {/* DANH SÁCH BÀI ĐĂNG TỪ TRÊN XUỐNG */}
+      <div style={styles.feedContainer}>
+        {loading ? (
+          <div style={styles.emptyText}>Đang tải bài đăng...</div>
+        ) : filteredItems.length === 0 ? (
+          <div style={styles.emptyText}>Không tìm thấy bài đăng phù hợp.</div>
+        ) : (
+          filteredItems.map((item) => {
+            // Lấy tên người đăng
+            const authorName =
+              item.user?.fullName || item.user?.name || item.authorName || 'Người dùng';
+            // Lấy ký tự đầu làm Avatar mặc định nếu không có ảnh
+            const firstLetter = authorName.charAt(0).toUpperCase();
+
+            return (
+              <div key={item._id} style={styles.postCard}>
+                {/* 1. KHUNG THÔNG TIN NGƯỜI ĐĂNG (AVATAR + TÊN + NGÀY) */}
+                <div style={styles.postHeader}>
+                  <div style={styles.userInfo}>
+                    <div style={styles.avatar}>
+                      {item.user?.avatar ? (
+                        <img src={item.user.avatar} alt="Avatar" style={styles.avatarImg} />
+                      ) : (
+                        <span style={styles.avatarText}>{firstLetter}</span>
+                      )}
+                    </div>
+                    <div>
+                      <div style={styles.authorName}>{authorName}</div>
+                      <div style={styles.postDate}>
+                        {new Date(item.createdAt || Date.now()).toLocaleDateString('vi-VN')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nhãn loại tin */}
                   <span
-                    className={`text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full ${
-                      item.type === 'lost'
-                        ? 'bg-red-100 text-red-600'
-                        : 'bg-green-100 text-green-600'
-                    }`}
+                    style={{
+                      ...styles.badge,
+                      ...(item.type === 'lost' ? styles.badgeLost : styles.badgeFound),
+                    }}
                   >
                     {item.type === 'lost' ? '🔴 Cần tìm đồ' : '🟢 Nhặt được đồ'}
                   </span>
-                  <span className="text-[10px] text-gray-400">
-                    {new Date(item.createdAt).toLocaleDateString('vi-VN')}
-                  </span>
                 </div>
 
-                <h3 className="font-bold text-sm md:text-base text-gray-800 line-clamp-1 mb-1">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                  {item.description}
-                </p>
-              </div>
+                {/* 2. NỘI DUNG BÀI ĐĂNG */}
+                <div style={styles.postBody}>
+                  <h3 style={styles.postTitle}>{item.title}</h3>
+                  <p style={styles.postDescription}>{item.description}</p>
 
-              <div className="border-t border-gray-50 pt-2 text-[11px] text-gray-500 space-y-1">
-                <p className="truncate">
-                  📍 <span className="font-medium">{item.location}</span>
-                </p>
-                <p className="truncate">
-                  🏷️ <span className="font-medium">{item.category}</span>
-                </p>
+                  <div style={styles.postMeta}>
+                    <span style={styles.metaItem}>📍 {item.location}</span>
+                    <span style={styles.metaItem}>🏷️ {item.category}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            );
+          })
+        )}
+      </div>
     </div>
   );
-}
+};
+
+const styles = {
+  container: {
+    maxWidth: '720px', // Khung chuẩn Newfeed
+    margin: '0 auto',
+    padding: '25px 15px',
+  },
+  filterCard: {
+    backgroundColor: '#ffffff',
+    padding: '16px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '25px',
+    flexWrap: 'wrap',
+  },
+  searchInput: {
+    flex: '2',
+    minWidth: '200px',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    fontSize: '14px',
+    outline: 'none',
+  },
+  selectFilter: {
+    flex: '1',
+    minWidth: '140px',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    fontSize: '14px',
+    outline: 'none',
+    backgroundColor: '#ffffff',
+  },
+  feedContainer: {
+    display: 'flex',
+    flexDirection: 'column', // Xếp từ trên xuống dưới
+    gap: '20px',
+  },
+  postCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '14px',
+    padding: '20px',
+    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.05)',
+    border: '1px solid #f1f5f9',
+  },
+  postHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '14px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid #f8fafc',
+  },
+  userInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  avatar: {
+    width: '42px',
+    height: '42px',
+    borderRadius: '50%',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontWeight: 'bold',
+    fontSize: '18px',
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  avatarText: {
+    lineHeight: 1,
+  },
+  authorName: {
+    fontWeight: '700',
+    fontSize: '15px',
+    color: '#1e293b',
+  },
+  postDate: {
+    fontSize: '12px',
+    color: '#94a3b8',
+    marginTop: '2px',
+  },
+  badge: {
+    padding: '5px 12px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: '600',
+  },
+  badgeLost: {
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+  },
+  badgeFound: {
+    backgroundColor: '#f0fdf4',
+    color: '#16a34a',
+  },
+  postBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  postTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  postDescription: {
+    margin: '4px 0 10px 0',
+    fontSize: '14px',
+    color: '#475569',
+    lineHeight: '1.5',
+  },
+  postMeta: {
+    display: 'flex',
+    gap: '15px',
+    fontSize: '13px',
+    color: '#64748b',
+    backgroundColor: '#f8fafc',
+    padding: '8px 12px',
+    borderRadius: '8px',
+  },
+  metaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  emptyText: {
+    textAlign: 'center',
+    padding: '40px',
+    color: '#64748b',
+    fontSize: '15px',
+  },
+};
+
+export default Home;
