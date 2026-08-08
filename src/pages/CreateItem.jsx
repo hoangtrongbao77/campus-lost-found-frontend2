@@ -1,73 +1,76 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 
 const CreateItem = () => {
+  let currentUser = {};
+  try {
+    currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  } catch (e) {
+    currentUser = {};
+  }
+
   const [formData, setFormData] = useState({
-    type: 'lost',
     title: '',
-    category: 'Thiết bị điện tử',
+    type: 'lost', // lost: Mất đồ, found: Nhặt được
+    category: 'Giấy tờ cá nhân',
     location: '',
+    phone: currentUser.phone || '', // Tự điền nếu có
     description: '',
+    imageUrl: '',
   });
 
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [toastMessage, setToastMessage] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleTypeSelect = (typeValue) => {
-    setFormData({
-      ...formData,
-      type: typeValue,
-    });
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        setError('Kích thước ảnh không quá 3MB!');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, imageUrl: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
+    setLoading(true);
+    setError('');
 
-    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
-    const savedUser = localStorage.getItem('user');
-    const currentUser = savedUser ? JSON.parse(savedUser) : null;
-
-    if (!token) {
-      setErrorMsg('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+    const userId = currentUser._id || currentUser.id;
+    if (!userId) {
+      alert('Vui lòng đăng nhập trước khi đăng tin!');
+      navigate('/login');
       return;
     }
 
-    setLoading(true);
-
     try {
-      // Đóng gói dữ liệu gửi đi (Kèm theo User ID và Tên dự phòng)
-      const payload = {
+      const res = await API.post('/items', {
         ...formData,
-        user: currentUser?._id || currentUser?.id,
-        authorName: currentUser?.fullName || currentUser?.name || currentUser?.username || 'Sinh viên',
-      };
-
-      await API.post('/items', payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        userId,
       });
 
-      setToastMessage('🎉 Đăng tin thành công!');
-
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
-
-    } catch (error) {
-      console.error('Lỗi đăng tin:', error);
-      setErrorMsg(
-        error.response?.data?.message || error.response?.data?.error || 'Lỗi server khi đăng tin!'
+      if (res.data.success) {
+        alert('Đăng tin thành công!');
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Lỗi tạo bài viết:', err);
+      setError(
+        err.response?.data?.message || 'Đăng tin thất bại. Vui lòng thử lại!'
       );
+    } finally {
       setLoading(false);
     }
   };
@@ -75,150 +78,157 @@ const CreateItem = () => {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h2 style={styles.title}>📝 Đăng Tin Đồ Thất Lạc</h2>
+        <h2 style={styles.title}>📢 Đăng Tin Mới</h2>
 
-        {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
+        {error && <div style={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Loại Tin (*)</label>
-            <div style={styles.typeContainer}>
-              <button
-                type="button"
-                onClick={() => handleTypeSelect('lost')}
-                style={{
-                  ...styles.typeBtn,
-                  ...(formData.type === 'lost' ? styles.typeBtnLostActive : {}),
-                }}
-              >
-                🔴 Cần tìm đồ thất lạc
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTypeSelect('found')}
-                style={{
-                  ...styles.typeBtn,
-                  ...(formData.type === 'found' ? styles.typeBtnFoundActive : {}),
-                }}
-              >
-                🟢 Nhặt được đồ
-              </button>
-            </div>
+          {/* LOẠI TIN */}
+          <div style={styles.field}>
+            <label style={styles.label}>Phân loại tin:</label>
+            <select
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              style={styles.select}
+            >
+              <option value="lost">🔴 Tin Mất Đồ (Cần tìm)</option>
+              <option value="found">🟢 Tin Nhặt Được (Trả đồ)</option>
+            </select>
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Tiêu Đề (*)</label>
+          {/* TIÊU ĐỀ */}
+          <div style={styles.field}>
+            <label style={styles.label}>Tiêu đề bài đăng (*):</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="VD: Nhặt được ví tiền màu đen"
+              placeholder="VD: Nhặt được thẻ sinh viên Ngô Văn Nghĩa..."
               required
               style={styles.input}
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Danh Mục (*)</label>
+          {/* DANH MỤC */}
+          <div style={styles.field}>
+            <label style={styles.label}>Danh mục đồ vật:</label>
             <select
               name="category"
               value={formData.category}
               onChange={handleChange}
               style={styles.select}
             >
-              <option value="Thiết bị điện tử">Thiết bị điện tử</option>
-              <option value="Giấy tờ cá nhân">Giấy tờ cá nhân</option>
-              <option value="Ví / Tiền mặt">Ví / Tiền mặt</option>
-              <option value="Chìa khóa">Chìa khóa</option>
-              <option value="Balo / Túi xách">Balo / Túi xách</option>
-              <option value="Đồ dùng học tập">Đồ dùng học tập</option>
-              <option value="Khác">Khác</option>
+              <option value="Giấy tờ cá nhân">💳 Giấy tờ cá nhân (Thẻ SV, CCCD...)</option>
+              <option value="Thiết bị điện tử">📱 Thiết bị điện tử (Điện thoại, Laptop...)</option>
+              <option value="Ví / Bóp">👛 Ví / Bóp / Tiền mặt</option>
+              <option value="Chìa khóa / Thẻ xe">🔑 Chìa khóa / Thẻ xe</option>
+              <option value="Khác">📦 Khác</option>
             </select>
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Vị Trí (*)</label>
+          {/* SỐ ĐIỆN THOẠI BỔ SUNG */}
+          <div style={styles.field}>
+            <label style={styles.label}>Số điện thoại / Zalo liên hệ (*):</label>
             <input
               type="text"
-              name="location"
-              value={formData.location}
+              name="phone"
+              value={formData.phone}
               onChange={handleChange}
-              placeholder="VD: Phòng H501, Căng tin..."
+              placeholder="Nhập số điện thoại để người khác liên hệ..."
               required
               style={styles.input}
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Mô Tả Chi Tiết (*)</label>
+          {/* ĐỊA ĐIỂM */}
+          <div style={styles.field}>
+            <label style={styles.label}>Địa điểm (Nhặt được / Đánh rơi):</label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="VD: Sảnh A, Nhà thể thao, Căng tin..."
+              style={styles.input}
+            />
+          </div>
+
+          {/* MÔ TẢ CHI TIẾT */}
+          <div style={styles.field}>
+            <label style={styles.label}>Mô tả chi tiết:</label>
             <textarea
               name="description"
               rows="4"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Mô tả đặc điểm..."
-              required
+              placeholder="Mô tả đặc điểm nhận dạng, thời gian..."
               style={styles.textarea}
             />
           </div>
 
+          {/* TẢI ẢNH */}
+          <div style={styles.field}>
+            <label style={styles.label}>Hình ảnh đồ vật:</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ fontSize: '14px' }}
+            />
+            {formData.imageUrl && (
+              <img
+                src={formData.imageUrl}
+                alt="Preview"
+                style={styles.imagePreview}
+              />
+            )}
+          </div>
+
           <button type="submit" disabled={loading} style={styles.submitBtn}>
-            {loading ? 'Đang gửi...' : '+ Hoàn Tất Đăng Tin'}
+            {loading ? 'Đang đăng tin...' : '🚀 Đăng Tin Khởi Tạo'}
           </button>
         </form>
       </div>
-
-      {toastMessage && (
-        <div style={styles.toast}>
-          <span style={{ fontSize: '18px' }}>✅</span>
-          <span>{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 };
 
 const styles = {
   container: {
-    minHeight: '85vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: '30px 20px',
-    position: 'relative',
+    maxWidth: '560px',
+    margin: '20px auto',
+    padding: '0 15px',
   },
   card: {
     backgroundColor: '#ffffff',
-    padding: '35px',
-    borderRadius: '16px',
+    padding: '30px',
+    borderRadius: '12px',
     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
-    width: '100%',
-    maxWidth: '550px',
+    border: '1px solid #e2e8f0',
   },
   title: {
-    textAlign: 'center',
-    color: '#1e293b',
-    marginBottom: '25px',
-    fontSize: '22px',
-    fontWeight: 'bold',
-  },
-  errorBanner: {
-    backgroundColor: '#fef2f2',
-    color: '#991b1b',
-    border: '1px solid #fecaca',
-    padding: '12px 16px',
-    borderRadius: '8px',
+    fontSize: '20px',
+    fontWeight: '700',
     marginBottom: '20px',
-    fontSize: '14px',
+    color: '#0f172a',
     textAlign: 'center',
+  },
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    color: '#dc2626',
+    padding: '10px',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    fontSize: '14px',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '18px',
+    gap: '16px',
   },
-  inputGroup: {
+  field: {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
@@ -228,80 +238,46 @@ const styles = {
     fontWeight: '600',
     color: '#334155',
   },
-  typeContainer: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '10px',
-  },
-  typeBtn: {
-    padding: '10px',
-    borderRadius: '8px',
-    border: '1px solid #cbd5e1',
-    backgroundColor: '#f8fafc',
-    color: '#64748b',
-    fontSize: '13px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  typeBtnLostActive: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#ef4444',
-    color: '#dc2626',
-  },
-  typeBtnFoundActive: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#22c55e',
-    color: '#16a34a',
-  },
   input: {
-    padding: '11px 14px',
+    padding: '10px 12px',
     borderRadius: '8px',
     border: '1px solid #cbd5e1',
     fontSize: '14px',
     outline: 'none',
   },
   select: {
-    padding: '11px 14px',
+    padding: '10px 12px',
     borderRadius: '8px',
     border: '1px solid #cbd5e1',
     fontSize: '14px',
     outline: 'none',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
   },
   textarea: {
-    padding: '11px 14px',
+    padding: '10px 12px',
     borderRadius: '8px',
     border: '1px solid #cbd5e1',
     fontSize: '14px',
     outline: 'none',
     resize: 'vertical',
   },
-  submitBtn: {
+  imagePreview: {
     marginTop: '10px',
-    padding: '13px',
-    backgroundColor: '#eab308',
-    color: '#1e293b',
-    border: 'none',
+    width: '100%',
+    maxHeight: '200px',
+    objectFit: 'cover',
     borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
   },
-  toast: {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    backgroundColor: '#16a34a',
+  submitBtn: {
+    backgroundColor: '#2563eb',
     color: '#ffffff',
-    padding: '14px 22px',
-    borderRadius: '10px',
-    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
+    border: 'none',
+    padding: '12px',
+    borderRadius: '8px',
+    fontWeight: '700',
     fontSize: '15px',
-    fontWeight: '600',
-    zIndex: 9999,
+    cursor: 'pointer',
+    marginTop: '10px',
   },
 };
 
