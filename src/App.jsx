@@ -3,6 +3,8 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import Home from './pages/Home';
 import CreateItem from './pages/CreateItem';
 import ItemDetail from './pages/ItemDetail';
+import Admin from './pages/Admin'; // 👈 Import Trang Admin
+import Profile from './pages/Profile'; // 👈 Import Trang Cá Nhân
 
 function App() {
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ function App() {
               + Đăng tin
             </Link>
 
+            {/* Nút vào Trang Admin nếu tài khoản có quyền admin */}
             {currentUser?.role === 'admin' && (
               <Link to="/admin" style={styles.adminBtn}>
                 🛡️ Trang Admin
@@ -38,9 +41,10 @@ function App() {
 
             {currentUser ? (
               <div style={styles.userSection}>
-                <span style={styles.welcomeText}>
-                  👤 Chào, <strong>{currentUser.fullName || currentUser.name || 'Sinh viên'}</strong>
-                </span>
+                {/* 👈 Nút bấm vào TRANG CÁ NHÂN */}
+                <Link to="/profile" style={styles.profileLink}>
+                  👤 <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
+                </Link>
                 <button onClick={handleLogout} style={styles.logoutBtn}>
                   Đăng Xuất
                 </button>
@@ -54,12 +58,14 @@ function App() {
         </div>
       </header>
 
-      {/* NỘI DUNG NỀN TRANG */}
+      {/* KHU VỰC HIỂN THỊ TRANG */}
       <main style={{ paddingBottom: '40px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/create" element={<CreateItem />} />
           <Route path="/items/:id" element={<ItemDetail />} />
+          <Route path="/admin" element={<Admin />} /> {/* 👈 Đăng ký Route Admin */}
+          <Route path="/profile" element={<Profile />} /> {/* 👈 Đăng ký Route Trang cá nhân */}
         </Routes>
       </main>
     </div>
@@ -117,11 +123,16 @@ const styles = {
   userSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '12px',
   },
-  welcomeText: {
+  profileLink: {
+    color: '#1e293b',
+    textDecoration: 'none',
     fontSize: '14px',
-    color: '#334155',
+    padding: '6px 10px',
+    borderRadius: '6px',
+    backgroundColor: '#f1f5f9',
+    transition: 'background-color 0.2s',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',
