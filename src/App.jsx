@@ -1,18 +1,11 @@
 import React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/Home';
-import Login from './pages/Login'; // 👈 Import Trang Login
+import Login from './pages/Login';
 import CreateItem from './pages/CreateItem';
 import ItemDetail from './pages/ItemDetail';
 
-// Bọc thử các trang optional để tránh crash nếu chưa tạo file
-import Admin from './pages/Admin';
-import Profile from './pages/Profile';
-
 function App() {
-  const navigate = useNavigate();
-
-  // Bắt lỗi an toàn khi đọc user từ localStorage (Ngăn ngừa màn hình trắng)
   let currentUser = null;
   try {
     const savedUser = localStorage.getItem('user');
@@ -20,8 +13,7 @@ function App() {
       currentUser = JSON.parse(savedUser);
     }
   } catch (err) {
-    console.error('Lỗi parse user từ localStorage:', err);
-    localStorage.removeItem('user');
+    console.error('Lỗi đọc user:', err);
   }
 
   const handleLogout = () => {
@@ -31,7 +23,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
-      {/* THANH HEADER */}
+      {/* HEADER */}
       <header style={styles.header}>
         <div style={styles.headerContainer}>
           <Link to="/" style={styles.logo}>
@@ -43,17 +35,11 @@ function App() {
               + Đăng tin
             </Link>
 
-            {currentUser?.role === 'admin' && (
-              <Link to="/admin" style={styles.adminBtn}>
-                🛡️ Trang Admin
-              </Link>
-            )}
-
             {currentUser ? (
               <div style={styles.userSection}>
-                <Link to="/profile" style={styles.profileLink}>
-                  👤 <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
-                </Link>
+                <span style={styles.welcomeText}>
+                  👤 <strong>{currentUser.fullName || currentUser.name || 'Sinh viên'}</strong>
+                </span>
                 <button onClick={handleLogout} style={styles.logoutBtn}>
                   Đăng Xuất
                 </button>
@@ -67,15 +53,14 @@ function App() {
         </div>
       </header>
 
-      {/* KHU VỰC ROUTE NỘI DUNG */}
-      <main style={{ paddingBottom: '40px' }}>
+      {/* KHU VỰC NỘI DUNG MAIN */}
+      <main style={{ padding: '20px 15px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/create" element={<CreateItem />} />
           <Route path="/items/:id" element={<ItemDetail />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="*" element={<Home />} />
         </Routes>
       </main>
     </div>
@@ -121,27 +106,14 @@ const styles = {
     fontWeight: '600',
     fontSize: '14px',
   },
-  adminBtn: {
-    backgroundColor: '#eab308',
-    color: '#ffffff',
-    padding: '8px 16px',
-    borderRadius: '8px',
-    textDecoration: 'none',
-    fontWeight: '600',
-    fontSize: '14px',
-  },
   userSection: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
   },
-  profileLink: {
-    color: '#1e293b',
-    textDecoration: 'none',
+  welcomeText: {
     fontSize: '14px',
-    padding: '6px 10px',
-    borderRadius: '6px',
-    backgroundColor: '#f1f5f9',
+    color: '#334155',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',

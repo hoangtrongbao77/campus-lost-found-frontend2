@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 
 const Login = () => {
@@ -21,55 +21,56 @@ const Login = () => {
       const res = await API.post('/auth/login', formData);
       const data = res.data;
 
-      // Lưu Token và User vào LocalStorage
-      if (data.token) localStorage.setItem('token', data.token);
-      if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
+      // Lưu Token và thông tin User vào LocalStorage
+      const token = data.token || data.accessToken;
+      if (token) localStorage.setItem('token', token);
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
 
-      window.location.href = '/'; // Chuyển hướng về trang chủ & tải lại state
+      // Chuyển hướng về trang chủ
+      window.location.href = '/';
     } catch (err) {
       console.error('Lỗi đăng nhập:', err);
-      setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!');
+      setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản, mật khẩu!');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
+    <div style={styles.wrapper}>
       <div style={styles.card}>
         <h2 style={styles.title}>🔑 Đăng Nhập</h2>
 
-        {error && <div style={styles.errorAlert}>{error}</div>}
+        {error && <div style={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.formGroup}>
+          <div style={styles.field}>
             <label style={styles.label}>Tài khoản / Email:</label>
             <input
               type="text"
               name="username"
               value={formData.username}
               onChange={handleChange}
+              placeholder="Nhập tên tài khoản hoặc email..."
               required
-              placeholder="Nhập tên đăng nhập hoặc email"
               style={styles.input}
             />
           </div>
 
-          <div style={styles.formGroup}>
+          <div style={styles.field}>
             <label style={styles.label}>Mật khẩu:</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
+              placeholder="Nhập mật khẩu..."
               required
-              placeholder="Nhập mật khẩu"
               style={styles.input}
             />
           </div>
 
-          <button type="submit" disabled={loading} style={styles.submitBtn}>
+          <button type="submit" disabled={loading} style={styles.button}>
             {loading ? 'Đang xử lý...' : 'Đăng Nhập'}
           </button>
         </form>
@@ -79,38 +80,43 @@ const Login = () => {
 };
 
 const styles = {
-  container: {
-    maxWidth: '420px',
-    margin: '60px auto',
-    padding: '0 15px',
+  wrapper: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '40px 15px',
   },
   card: {
+    width: '100%',
+    maxWidth: '400px',
     backgroundColor: '#ffffff',
-    borderRadius: '12px',
     padding: '30px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+    borderRadius: '12px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
     border: '1px solid #e2e8f0',
   },
   title: {
     textAlign: 'center',
-    margin: '0 0 20px 0',
+    marginBottom: '24px',
     color: '#0f172a',
+    fontSize: '22px',
+    fontWeight: '700',
   },
-  errorAlert: {
+  errorBox: {
     backgroundColor: '#fef2f2',
     color: '#dc2626',
     padding: '10px 14px',
     borderRadius: '8px',
+    marginBottom: '16px',
     fontSize: '14px',
-    marginBottom: '15px',
     border: '1px solid #fecaca',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '18px',
   },
-  formGroup: {
+  field: {
     display: 'flex',
     flexDirection: 'column',
     gap: '6px',
@@ -126,17 +132,19 @@ const styles = {
     border: '1px solid #cbd5e1',
     fontSize: '14px',
     outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
   },
-  submitBtn: {
+  button: {
     backgroundColor: '#2563eb',
     color: '#ffffff',
     border: 'none',
     padding: '12px',
     borderRadius: '8px',
-    fontSize: '15px',
     fontWeight: '700',
+    fontSize: '15px',
     cursor: 'pointer',
-    marginTop: '10px',
+    marginTop: '8px',
   },
 };
 
