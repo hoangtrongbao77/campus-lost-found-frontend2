@@ -23,8 +23,13 @@ function App() {
     window.location.href = '/login';
   };
 
-  // Kiểm tra quyền Admin (chấp nhận role === 'admin' hoặc isAdmin === true)
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.isAdmin === true;
+  // 🔑 Kiểm tra quyền Admin:
+  // Cấp quyền Admin nếu role === 'admin' HOẶC là tài khoản hoangtrongbao
+  const isAdmin =
+    currentUser?.role === 'admin' ||
+    currentUser?.isAdmin === true ||
+    currentUser?.email === 'hoangtrongbao1408@gmail.com' ||
+    currentUser?.username === 'hoangtrongbao';
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
@@ -40,7 +45,7 @@ function App() {
               + Đăng tin
             </Link>
 
-            {/* NÚT TRANG ADMIN: Chỉ hiển thị khi user có quyền Admin */}
+            {/* NÚT TRANG ADMIN (Hiển thị cho Admin) */}
             {isAdmin && (
               <Link to="/admin" style={styles.adminBtn}>
                 🛡️ Trang Admin
@@ -49,6 +54,7 @@ function App() {
 
             {currentUser ? (
               <div style={styles.userSection}>
+                {/* NÚT TRANG CÁ NHÂN (BẤM VÀO TÊN ĐỂ VÀO PROFILE) */}
                 <Link to="/profile" style={styles.profileLink}>
                   👤 <strong>{currentUser.fullName || currentUser.name || 'Trang cá nhân'}</strong>
                 </Link>
@@ -138,9 +144,11 @@ const styles = {
     color: '#1e293b',
     textDecoration: 'none',
     fontSize: '14px',
-    padding: '6px 10px',
-    borderRadius: '6px',
+    padding: '6px 12px',
+    borderRadius: '8px',
     backgroundColor: '#f1f5f9',
+    border: '1px solid #cbd5e1',
+    display: 'inline-block',
   },
   logoutBtn: {
     backgroundColor: '#ef4444',
