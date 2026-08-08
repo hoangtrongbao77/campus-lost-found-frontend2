@@ -1,80 +1,140 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
-export default function Navbar() {
-  const navigate = useNavigate();
+const Navbar = () => {
   const [user, setUser] = useState(null);
 
-  const loadUser = () => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) setUser(JSON.parse(savedUser));
-    else setUser(null);
-  };
-
   useEffect(() => {
-    loadUser();
-    window.addEventListener('storage', loadUser);
-    return () => window.removeEventListener('storage', loadUser);
+    // Lấy thông tin user đã lưu trong localStorage khi tải trang
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error('Lỗi đọc dữ liệu user:', error);
+      }
+    }
   }, []);
 
   const handleLogout = () => {
+    // Xóa Token & User khỏi localStorage và tải lại trang Login
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setUser(null);
-    navigate('/login');
+    window.location.href = '/login';
   };
 
-  const avatarSrc =
-    user?.avatar ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      user?.fullName || 'User'
-    )}&background=0D8ABC&color=fff&bold=true`;
-
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-40">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="font-bold text-blue-600 text-lg flex items-center gap-2">
-          🔍 Campus Lost & Found
+    <header style={styles.header}>
+      <div style={styles.container}>
+        {/* Logo ứng dụng */}
+        <Link to="/" style={styles.logo}>
+          <span role="img" aria-label="search">🔍</span> Campus Lost & Found
         </Link>
 
-        <div className="flex items-center gap-3 text-xs font-semibold">
+        {/* Khung menu bên phải */}
+        <div style={styles.navRight}>
           {user ? (
-            <>
-              {/* 🛡️ NÚT QUẢN TRỊ VIÊN (Chỉ hiển thị khi role === 'admin') */}
-              {user.role === 'admin' && (
-                <Link
-                  to="/admin"
-                  className="bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 px-3 py-1.5 rounded-xl transition flex items-center gap-1"
-                >
-                  🛡️ Quản trị
-                </Link>
-              )}
+            /* --- GIAO DIỆN KHI ĐÃ ĐĂNG NHẬP --- */
+            <div style={styles.userSection}>
+              <span style={styles.greeting}>
+                Chào, <strong>{user.fullName || user.name || 'Sinh viên'}</strong>
+              </span>
 
-              <Link to="/create-item" className="bg-blue-600 text-white px-3 py-1.5 rounded-xl hover:bg-blue-700 transition">
-                + Đăng tin
-              </Link>
-
-              {/* Link trang Cá nhân */}
-              <Link to="/profile" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 p-1.5 pr-3 rounded-full border border-gray-200 transition">
-                <img
-                  src={avatarSrc}
-                  alt={user.fullName}
-                  className="w-7 h-7 rounded-full object-cover"
-                />
-                <span className="text-gray-700 max-w-[100px] truncate">{user.fullName}</span>
-              </Link>
-
-              <button onClick={handleLogout} className="text-red-500 hover:underline ml-1">
-                Đăng xuất
+              <button onClick={handleLogout} style={styles.logoutBtn}>
+                Đăng Xuất
               </button>
-            </>
+            </div>
           ) : (
-            <Link to="/login" className="bg-blue-600 text-white px-4 py-1.5 rounded-xl">
-              Đăng Nhập
-            </Link>
+            /* --- GIAO DIỆN KHI CHƯA ĐĂNG NHẬP --- */
+            <div style={styles.authSection}>
+              <Link to="/login" style={styles.loginBtn}>
+                Đăng Nhập
+              </Link>
+              <Link to="/register" style={styles.registerBtn}>
+                Đăng Ký
+              </Link>
+            </div>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
-}
+};
+
+// Inline Style đồng bộ màu sắc toàn hệ thống
+const styles = {
+  header: {
+    backgroundColor: '#ffffff',
+    borderBottom: '1px solid #e5e7eb',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    position: 'sticky',
+    top: 0,
+    zIndex: 1000,
+  },
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '12px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logo: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#1d4ed8',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  navRight: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  userSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+  },
+  greeting: {
+    fontSize: '14px',
+    color: '#374151',
+  },
+  logoutBtn: {
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: '6px',
+    fontWeight: '600',
+    fontSize: '14px',
+    cursor: 'pointer',
+  },
+  authSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  loginBtn: {
+    backgroundColor: '#1d4ed8',
+    color: '#ffffff',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '14px',
+  },
+  registerBtn: {
+    backgroundColor: '#f3f4f6',
+    color: '#374151',
+    padding: '8px 16px',
+    borderRadius: '6px',
+    textDecoration: 'none',
+    fontWeight: '500',
+    fontSize: '14px',
+    border: '1px solid #d1d5db',
+  },
+};
+
+export default Navbar;
