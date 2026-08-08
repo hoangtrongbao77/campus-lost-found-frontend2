@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import API from '../api/axios';
 
 const Login = () => {
@@ -16,7 +17,6 @@ const Login = () => {
     setError('');
 
     try {
-      // Gửi đầy đủ các thuộc tính để khớp 100% với Backend
       const payload = {
         email: formData.account,
         username: formData.account,
@@ -35,7 +35,7 @@ const Login = () => {
     } catch (err) {
       console.error('Lỗi đăng nhập:', err);
       setError(
-        err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản, mật khẩu!'
+        err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!'
       );
     } finally {
       setLoading(false);
@@ -80,6 +80,13 @@ const Login = () => {
             {loading ? 'Đang xử lý...' : 'Đăng Nhập'}
           </button>
         </form>
+
+        <div style={styles.footerText}>
+          Chưa có tài khoản?{' '}
+          <Link to="/register" style={styles.link}>
+            Đăng ký ngay
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -151,6 +158,17 @@ const styles = {
     fontSize: '15px',
     cursor: 'pointer',
     marginTop: '8px',
+  },
+  footerText: {
+    textAlign: 'center',
+    marginTop: '20px',
+    fontSize: '14px',
+    color: '#64748b',
+  },
+  link: {
+    color: '#2563eb',
+    fontWeight: '600',
+    textDecoration: 'none',
   },
 };
 

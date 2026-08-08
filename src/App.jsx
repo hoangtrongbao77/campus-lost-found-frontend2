@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import CreateItem from './pages/CreateItem';
 import ItemDetail from './pages/ItemDetail';
 import Admin from './pages/Admin';
@@ -23,7 +24,6 @@ function App() {
     window.location.href = '/login';
   };
 
-  // 🔑 Bổ sung kiểm tra theo tên Hoàng Trọng Bảo để luôn hiện nút Admin
   const isAdmin =
     currentUser?.role === 'admin' ||
     currentUser?.isAdmin === true ||
@@ -34,7 +34,6 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' }}>
-      {/* HEADER */}
       <header style={styles.header}>
         <div style={styles.headerContainer}>
           <Link to="/" style={styles.logo}>
@@ -46,7 +45,6 @@ function App() {
               + Đăng tin
             </Link>
 
-            {/* NÚT TRANG ADMIN */}
             {isAdmin && (
               <Link to="/admin" style={styles.adminBtn}>
                 🛡️ Trang Admin
@@ -71,11 +69,11 @@ function App() {
         </div>
       </header>
 
-      {/* ROUTES */}
       <main style={{ padding: '20px 15px' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/create" element={<CreateItem />} />
           <Route path="/items/:id" element={<ItemDetail />} />
           <Route path="/admin" element={<Admin />} />

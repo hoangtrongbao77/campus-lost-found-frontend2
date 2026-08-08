@@ -1,42 +1,37 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import API from '../api/axios'; // Import API instance đã cấu hình baseURL tự động
+import { Link, useNavigate } from 'react-router-dom';
+import API from '../api/axios';
 
 const Register = () => {
-  const navigate = useNavigate();
-
   const [formData, setFormData] = useState({
-    studentId: '',
-    name: '',
+    fullName: '',
+    username: '',
     email: '',
     password: '',
-    phone: '',
   });
-
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    setError('');
 
     try {
-      // Gửi request tới Backend Render thông qua instance API
-      await API.post('/auth/register', formData);
-      alert('Đăng ký tài khoản thành công!');
-      navigate('/login');
+      const res = await API.post('/auth/register', formData);
+      if (res.data.success) {
+        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        navigate('/login');
+      }
     } catch (err) {
       console.error('Lỗi đăng ký:', err);
       setError(
-        err.response?.data?.message || 'Đăng ký thất bại! Vui lòng thử lại.'
+        err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!'
       );
     } finally {
       setLoading(false);
@@ -44,169 +39,156 @@ const Register = () => {
   };
 
   return (
-    <div style={styles.container}>
+    <div style={styles.wrapper}>
       <div style={styles.card}>
-        <h2 style={styles.title}>Đăng Ký Tài Khoản</h2>
+        <h2 style={styles.title}>📝 Đăng Ký Tài Khoản</h2>
 
-        {error && <div style={styles.errorBanner}>{error}</div>}
+        {error && <div style={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Mã Số Sinh Viên</label>
+          <div style={styles.field}>
+            <label style={styles.label}>Họ và tên:</label>
             <input
               type="text"
-              name="studentId"
-              value={formData.studentId}
+              name="fullName"
+              value={formData.fullName}
               onChange={handleChange}
-              placeholder="VD: 23T1020043"
+              placeholder="Nhập họ và tên..."
               required
               style={styles.input}
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Họ và Tên</label>
+          <div style={styles.field}>
+            <label style={styles.label}>Tên tài khoản (Username):</label>
             <input
               type="text"
-              name="name"
-              value={formData.name}
+              name="username"
+              value={formData.username}
               onChange={handleChange}
-              placeholder="VD: Hoàng Trọng Bảo"
+              placeholder="Nhập tên tài khoản..."
               required
               style={styles.input}
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email</label>
+          <div style={styles.field}>
+            <label style={styles.label}>Email:</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="VD: hoangtrongbao1408@gmail.com"
+              placeholder="Nhập email..."
               required
               style={styles.input}
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Mật Khẩu</label>
+          <div style={styles.field}>
+            <label style={styles.label}>Mật khẩu:</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••"
-              required
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Số Điện Thoại</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="VD: 0344417290"
+              placeholder="Nhập mật khẩu..."
               required
               style={styles.input}
             />
           </div>
 
           <button type="submit" disabled={loading} style={styles.button}>
-            {loading ? 'Đang xử lý...' : 'Tạo Tài Khoản'}
+            {loading ? 'Đang xử lý...' : 'Đăng Ký'}
           </button>
         </form>
 
-        <p style={styles.footerText}>
+        <div style={styles.footerText}>
           Đã có tài khoản?{' '}
           <Link to="/login" style={styles.link}>
-            Đăng nhập
+            Đăng nhập ngay
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );
 };
 
-// Inline CSS giao diện khớp với giao diện của bạn
 const styles = {
-  container: {
-    minHeight: '80vh',
+  wrapper: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: '20px',
+    padding: '40px 15px',
   },
   card: {
+    width: '100%',
+    maxWidth: '420px',
     backgroundColor: '#ffffff',
     padding: '30px',
     borderRadius: '12px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-    width: '100%',
-    maxWidth: '420px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    border: '1px solid #e2e8f0',
   },
   title: {
     textAlign: 'center',
-    color: '#1d4ed8',
-    marginBottom: '20px',
-    fontSize: '24px',
-    fontWeight: 'bold',
+    marginBottom: '24px',
+    color: '#0f172a',
+    fontSize: '22px',
+    fontWeight: '700',
   },
-  errorBanner: {
+  errorBox: {
     backgroundColor: '#fef2f2',
-    color: '#991b1b',
-    border: '1px solid #fecaca',
-    padding: '10px 15px',
-    borderRadius: '6px',
-    marginBottom: '15px',
+    color: '#dc2626',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    marginBottom: '16px',
     fontSize: '14px',
-    textAlign: 'center',
+    border: '1px solid #fecaca',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '15px',
+    gap: '16px',
   },
-  inputGroup: {
+  field: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '5px',
+    gap: '6px',
   },
   label: {
     fontSize: '14px',
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: '600',
+    color: '#334155',
   },
   input: {
     padding: '10px 12px',
-    borderRadius: '6px',
-    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
     fontSize: '14px',
     outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   button: {
-    marginTop: '10px',
-    padding: '12px',
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#10b981',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '16px',
-    fontWeight: '600',
+    padding: '12px',
+    borderRadius: '8px',
+    fontWeight: '700',
+    fontSize: '15px',
     cursor: 'pointer',
+    marginTop: '8px',
   },
   footerText: {
-    marginTop: '20px',
     textAlign: 'center',
+    marginTop: '20px',
     fontSize: '14px',
-    color: '#6b7280',
+    color: '#64748b',
   },
   link: {
-    color: '#1d4ed8',
+    color: '#2563eb',
     fontWeight: '600',
     textDecoration: 'none',
   },
