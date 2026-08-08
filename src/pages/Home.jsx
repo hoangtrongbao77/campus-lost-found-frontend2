@@ -5,7 +5,6 @@ const Home = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Bộ lọc
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -32,19 +31,17 @@ const Home = () => {
     }
   };
 
-  // Hàm trích xuất tên người đăng
-  const getAuthorName = (userObj) => {
-    if (!userObj) return 'Người dùng';
-    if (typeof userObj === 'string') return 'Người dùng'; // Trường hợp chỉ trả về String ID
-    return (
-      userObj.fullName ||
-      userObj.name ||
-      userObj.username ||
-      (userObj.email ? userObj.email.split('@')[0] : 'Người dùng')
-    );
+  // Hàm trích xuất tên tác giả đa tầng
+  const getAuthorName = (item) => {
+    if (item.user && typeof item.user === 'object') {
+      const name = item.user.fullName || item.user.name || item.user.username;
+      if (name) return name;
+      if (item.user.email) return item.user.email.split('@')[0];
+    }
+    if (item.authorName) return item.authorName;
+    return 'Người dùng';
   };
 
-  // Lọc bài viết
   const filteredItems = items.filter((item) => {
     const matchSearch =
       item.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -59,7 +56,6 @@ const Home = () => {
 
   return (
     <div style={styles.container}>
-      {/* Khung Tìm Kiếm & Bộ Lọc */}
       <div style={styles.filterCard}>
         <input
           type="text"
@@ -95,7 +91,6 @@ const Home = () => {
         </select>
       </div>
 
-      {/* DANH SÁCH BÀI ĐĂNG TỪ TRÊN XUỐNG */}
       <div style={styles.feedContainer}>
         {loading ? (
           <div style={styles.emptyText}>Đang tải bài đăng...</div>
@@ -103,7 +98,7 @@ const Home = () => {
           <div style={styles.emptyText}>Không tìm thấy bài đăng phù hợp.</div>
         ) : (
           filteredItems.map((item) => {
-            const authorName = getAuthorName(item.user);
+            const authorName = getAuthorName(item);
             const firstLetter = authorName.charAt(0).toUpperCase();
 
             return (

@@ -12,8 +12,6 @@ const CreateItem = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  
-  // State quản lý thông báo Toast ở góc phải phía dưới
   const [toastMessage, setToastMessage] = useState('');
 
   const handleChange = (e) => {
@@ -35,25 +33,32 @@ const CreateItem = () => {
     setErrorMsg('');
 
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+    const savedUser = localStorage.getItem('user');
+    const currentUser = savedUser ? JSON.parse(savedUser) : null;
 
     if (!token) {
-      setErrorMsg('Phiên đăng nhập đã hết hạn. Vui lòng Đăng xuất và Đăng nhập lại!');
+      setErrorMsg('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
       return;
     }
 
     setLoading(true);
 
     try {
-      await API.post('/items', formData, {
+      // Đóng gói dữ liệu gửi đi (Kèm theo User ID và Tên dự phòng)
+      const payload = {
+        ...formData,
+        user: currentUser?._id || currentUser?.id,
+        authorName: currentUser?.fullName || currentUser?.name || currentUser?.username || 'Sinh viên',
+      };
+
+      await API.post('/items', payload, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // 1. Hiển thị Toast thông báo ở góc phải phía dưới
       setToastMessage('🎉 Đăng tin thành công!');
 
-      // 2. Tự động chuyển về Trang chủ sau 2 giây
       setTimeout(() => {
         window.location.href = '/';
       }, 2000);
@@ -75,7 +80,6 @@ const CreateItem = () => {
         {errorMsg && <div style={styles.errorBanner}>{errorMsg}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Chọn Loại Tin */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Loại Tin (*)</label>
             <div style={styles.typeContainer}>
@@ -102,7 +106,6 @@ const CreateItem = () => {
             </div>
           </div>
 
-          {/* Tiêu đề */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Tiêu Đề (*)</label>
             <input
@@ -116,7 +119,6 @@ const CreateItem = () => {
             />
           </div>
 
-          {/* Danh mục */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Danh Mục (*)</label>
             <select
@@ -135,7 +137,6 @@ const CreateItem = () => {
             </select>
           </div>
 
-          {/* Vị trí */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Vị Trí (*)</label>
             <input
@@ -143,13 +144,12 @@ const CreateItem = () => {
               name="location"
               value={formData.location}
               onChange={handleChange}
-              placeholder="VD: Phòng H501, Nhà xe A, Căng tin..."
+              placeholder="VD: Phòng H501, Căng tin..."
               required
               style={styles.input}
             />
           </div>
 
-          {/* Mô tả */}
           <div style={styles.inputGroup}>
             <label style={styles.label}>Mô Tả Chi Tiết (*)</label>
             <textarea
@@ -157,7 +157,7 @@ const CreateItem = () => {
               rows="4"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Mô tả đặc điểm nhận dạng, thời gian..."
+              placeholder="Mô tả đặc điểm..."
               required
               style={styles.textarea}
             />
@@ -169,7 +169,6 @@ const CreateItem = () => {
         </form>
       </div>
 
-      {/* --- TOAST THÔNG BÁO Ở GÓC PHẢI PHÍA DƯỚI --- */}
       {toastMessage && (
         <div style={styles.toast}>
           <span style={{ fontSize: '18px' }}>✅</span>
@@ -288,7 +287,6 @@ const styles = {
     fontWeight: 'bold',
     cursor: 'pointer',
   },
-  // Style cho khung Toast góc phải phía dưới
   toast: {
     position: 'fixed',
     bottom: '24px',
