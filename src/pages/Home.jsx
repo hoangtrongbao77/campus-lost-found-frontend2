@@ -20,7 +20,6 @@ const Home = () => {
       const res = await API.get('/items');
       const data = res.data.data || res.data;
 
-      // Sắp xếp bài mới nhất lên trên cùng
       const sortedData = Array.isArray(data)
         ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         : [];
@@ -31,6 +30,18 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Hàm trích xuất tên người đăng
+  const getAuthorName = (userObj) => {
+    if (!userObj) return 'Người dùng';
+    if (typeof userObj === 'string') return 'Người dùng'; // Trường hợp chỉ trả về String ID
+    return (
+      userObj.fullName ||
+      userObj.name ||
+      userObj.username ||
+      (userObj.email ? userObj.email.split('@')[0] : 'Người dùng')
+    );
   };
 
   // Lọc bài viết
@@ -92,15 +103,11 @@ const Home = () => {
           <div style={styles.emptyText}>Không tìm thấy bài đăng phù hợp.</div>
         ) : (
           filteredItems.map((item) => {
-            // Lấy tên người đăng
-            const authorName =
-              item.user?.fullName || item.user?.name || item.authorName || 'Người dùng';
-            // Lấy ký tự đầu làm Avatar mặc định nếu không có ảnh
+            const authorName = getAuthorName(item.user);
             const firstLetter = authorName.charAt(0).toUpperCase();
 
             return (
               <div key={item._id} style={styles.postCard}>
-                {/* 1. KHUNG THÔNG TIN NGƯỜI ĐĂNG (AVATAR + TÊN + NGÀY) */}
                 <div style={styles.postHeader}>
                   <div style={styles.userInfo}>
                     <div style={styles.avatar}>
@@ -118,7 +125,6 @@ const Home = () => {
                     </div>
                   </div>
 
-                  {/* Nhãn loại tin */}
                   <span
                     style={{
                       ...styles.badge,
@@ -129,7 +135,6 @@ const Home = () => {
                   </span>
                 </div>
 
-                {/* 2. NỘI DUNG BÀI ĐĂNG */}
                 <div style={styles.postBody}>
                   <h3 style={styles.postTitle}>{item.title}</h3>
                   <p style={styles.postDescription}>{item.description}</p>
@@ -150,7 +155,7 @@ const Home = () => {
 
 const styles = {
   container: {
-    maxWidth: '720px', // Khung chuẩn Newfeed
+    maxWidth: '720px',
     margin: '0 auto',
     padding: '25px 15px',
   },
@@ -185,7 +190,7 @@ const styles = {
   },
   feedContainer: {
     display: 'flex',
-    flexDirection: 'column', // Xếp từ trên xuống dưới
+    flexDirection: 'column',
     gap: '20px',
   },
   postCard: {
