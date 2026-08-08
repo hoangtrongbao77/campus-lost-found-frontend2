@@ -1,125 +1,171 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import API from '../api/axios';
 
 const ItemDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-
   const [item, setItem] = useState(null);
+  const [relatedItems, setRelatedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchItemDetail();
+    const fetchItemAndRelated = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        // 1. Lấy thông tin chi tiết bài viết
+        const res = await API.get(`/items/${id}`);
+        const currentItem = res.data.item || res.data;
+        setItem(currentItem);
+
+        // 2. Lấy danh sách bài viết gợi ý cùng Danh mục (Category)
+        if (currentItem && currentItem.category) {
+          const relatedRes = await API.get(`/items?category=${encodeURIComponent(currentItem.category)}`);
+          const allItems = relatedRes.data.items || relatedRes.data || [];
+          
+          // Lọc loại bỏ bài viết đang xem và lấy tối đa 4 bài
+          const filtered = allItems.filter(
+            (i) => (i._id || i.id) !== id && (i._id || i.id) !== currentItem._id
+          );
+          setRelatedItems(filtered.slice(0, 4));
+        }
+      } catch (err) {
+        console.error('Lỗi lấy chi tiết bài viết:', err);
+        setError('Không tìm thấy bài viết hoặc đã có lỗi xảy ra!');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchItemAndRelated();
+    }
   }, [id]);
 
-  const fetchItemDetail = async () => {
-    try {
-      setLoading(true);
-      const res = await API.get(`/items/${id}`);
-      setItem(res.data.data || res.data);
-    } catch (err) {
-      console.error('Lỗi tải chi tiết bài viết:', err);
-      setError('Không tìm thấy bài đăng hoặc bài viết đã bị xóa!');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
-    return <div style={styles.loading}>Đang tải chi tiết bài đăng...</div>;
+    return <div style={styles.centerText}>⏳ Đang tải dữ liệu bài viết...</div>;
   }
 
   if (error || !item) {
     return (
-      <div style={styles.container}>
-        <div style={styles.errorCard}>
-          <p style={{ color: '#ef4444', fontSize: '16px', fontWeight: 'bold' }}>{error}</p>
-          <button onClick={() => navigate('/')} style={styles.backBtn}>
-            ⬅ Quay lại Trang chủ
-          </button>
-        </div>
+      <div style={styles.centerText}>
+        <p style={{ color: '#ef4444' }}>{error || 'Bài viết không tồn tại!'}</p>
+        <Link to="/" style={styles.backBtn}>
+          👈 Quay về trang chủ
+        </Link>
       </div>
     );
   }
 
-  const authorName =
-    item.user?.fullName ||
-    item.user?.name ||
-    item.user?.username ||
-    item.authorName ||
-    'Người dùng';
-  const firstLetter = authorName.charAt(0).toUpperCase();
-
   return (
     <div style={styles.container}>
-      <button onClick={() => navigate('/')} style={styles.backBtn}>
-        ⬅ Quay lại Trang chủ
-      </button>
+      <Link to="/" style={styles.backLink}>
+        ← Quay lại danh sách
+      </Link>
 
+      {/* THÔNG TIN CHI TIẾT BÀI VIẾT */}
       <div style={styles.card}>
-        {/* Header: Avatar, Tên & Loại tin */}
-        <div style={styles.header}>
-          <div style={styles.userInfo}>
-            <div style={styles.avatar}>
-              {item.user?.avatar ? (
-                <img src={item.user.avatar} alt="Avatar" style={styles.avatarImg} />
-              ) : (
-                <span style={styles.avatarText}>{firstLetter}</span>
-              )}
-            </div>
-            <div>
-              <div style={styles.authorName}>{authorName}</div>
-              <div style={styles.date}>
-                Đăng ngày: {new Date(item.createdAt || Date.now()).toLocaleDateString('vi-VN')}
-              </div>
-            </div>
-          </div>
-
-          <span
-            style={{
-              ...styles.badge,
-              ...(item.type === 'lost' ? styles.badgeLost : styles.badgeFound),
-            }}
-          >
-            {item.type === 'lost' ? '🔴 Cần tìm đồ' : '🟢 Nhặt được đồ'}
-          </span>
-        </div>
-
-        {/* Tiêu đề & Thông tin cơ bản */}
-        <h1 style={styles.title}>{item.title}</h1>
-
-        <div style={styles.infoBox}>
-          <div style={styles.infoItem}>
-            📍 <strong>Vị trí:</strong> {item.location}
-          </div>
-          <div style={styles.infoItem}>
-            🏷️ <strong>Danh mục:</strong> {item.category}
-          </div>
-          <div style={styles.infoItem}>
-            📌 <strong>Trạng thái:</strong>{' '}
-            {item.status === 'resolved' ? '✅ Đã hoàn tất' : '⏳ Đang tìm / Chưa trả'}
-          </div>
-        </div>
-
-        {/* Nội dung mô tả */}
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>📄 Mô tả chi tiết</h3>
-          <p style={styles.description}>{item.description}</p>
-        </div>
-
-        {/* Thông tin liên hệ */}
-        <div style={styles.contactBox}>
-          <h3 style={styles.sectionTitle}>📞 Thông tin liên hệ người đăng</h3>
-          {item.user?.email ? (
-            <p style={styles.contactItem}>✉️ Email: <strong>{item.user.email}</strong></p>
+        <div style={styles.imageBox}>
+          {item.imageUrl || item.image ? (
+            <img
+              src={item.imageUrl || item.image}
+              alt={item.title}
+              style={styles.image}
+            />
           ) : (
-            <p style={styles.contactItem}>
-              Vui lòng trao đổi trực tiếp hoặc kiểm tra tài khoản liên hệ của tác giả.
-            </p>
+            <div style={styles.noImg}>📷 Không có hình ảnh</div>
           )}
         </div>
+
+        <div style={styles.infoBox}>
+          <div style={styles.badgeGroup}>
+            <span
+              style={{
+                ...styles.typeBadge,
+                backgroundColor: item.type === 'lost' ? '#fee2e2' : '#dcfce7',
+                color: item.type === 'lost' ? '#dc2626' : '#16a34a',
+              }}
+            >
+              {item.type === 'lost' ? '🔴 Tin Nhặt / Nhặt Được' : '🟢 Tin Mất Đồ'}
+            </span>
+            <span style={styles.categoryBadge}>{item.category || 'Khác'}</span>
+          </div>
+
+          <h1 style={styles.title}>{item.title}</h1>
+
+          <div style={styles.detailRow}>
+            <strong>📍 Địa điểm:</strong> {item.location || 'Chưa cập nhật'}
+          </div>
+
+          <div style={styles.detailRow}>
+            <strong>📅 Ngày đăng/nhặt:</strong>{' '}
+            {item.date ? new Date(item.date).toLocaleDateString('vi-VN') : 'Mới đây'}
+          </div>
+
+          <div style={styles.detailRow}>
+            <strong>📝 Mô tả chi tiết:</strong>
+            <p style={styles.description}>{item.description || 'Không có mô tả.'}</p>
+          </div>
+
+          <hr style={styles.divider} />
+
+          {/* THÔNG TIN NGUỜI ĐĂNG */}
+          <div style={styles.contactCard}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>👤 Thông tin liên hệ:</h3>
+            <p style={{ margin: '4px 0' }}>
+              <strong>Người đăng:</strong> {item.user?.fullName || item.contactName || 'Người dùng'}
+            </p>
+            {item.user?.studentId && (
+              <p style={{ margin: '4px 0' }}>
+                <strong>MSV:</strong> {item.user.studentId}
+              </p>
+            )}
+            <p style={{ margin: '4px 0' }}>
+              <strong>Số điện thoại/Zalo:</strong>{' '}
+              <a href={`tel:${item.phone || item.contactPhone}`} style={{ color: '#2563eb', fontWeight: 'bold' }}>
+                {item.phone || item.contactPhone || 'Chưa cung cấp'}
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* BÀI VIẾT GỢI Ý PHÙ HỢP */}
+      <div style={styles.relatedSection}>
+        <h2 style={styles.relatedTitle}>💡 Bài viết gợi ý phù hợp (Cùng danh mục)</h2>
+
+        {relatedItems.length > 0 ? (
+          <div style={styles.grid}>
+            {relatedItems.map((rel) => (
+              <Link
+                key={rel._id || rel.id}
+                to={`/items/${rel._id || rel.id}`}
+                style={styles.gridCard}
+              >
+                <div style={styles.gridImgBox}>
+                  {rel.imageUrl || rel.image ? (
+                    <img
+                      src={rel.imageUrl || rel.image}
+                      alt={rel.title}
+                      style={styles.gridImg}
+                    />
+                  ) : (
+                    <div style={styles.gridNoImg}>📷 Không ảnh</div>
+                  )}
+                </div>
+                <div style={styles.gridInfo}>
+                  <h4 style={styles.gridTitle}>{rel.title}</h4>
+                  <p style={styles.gridLocation}>📍 {rel.location || 'Chưa có vị trí'}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div style={styles.emptyRelated}>
+            Chưa có bài viết nào khác thuộc danh mục <strong>"{item.category}"</strong>.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -127,142 +173,176 @@ const ItemDetail = () => {
 
 const styles = {
   container: {
-    maxWidth: '720px',
-    margin: '30px auto',
-    padding: '0 15px',
+    maxWidth: '960px',
+    margin: '0 auto',
+    padding: '10px 15px',
   },
-  loading: {
+  backLink: {
+    display: 'inline-block',
+    marginBottom: '16px',
+    color: '#2563eb',
+    textDecoration: 'none',
+    fontWeight: '600',
+  },
+  centerText: {
     textAlign: 'center',
-    padding: '50px',
+    padding: '50px 20px',
     fontSize: '16px',
-    color: '#64748b',
   },
   backBtn: {
-    backgroundColor: '#ffffff',
-    border: '1px solid #cbd5e1',
+    display: 'inline-block',
+    marginTop: '12px',
+    backgroundColor: '#2563eb',
+    color: '#fff',
     padding: '8px 16px',
     borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: '20px',
+    textDecoration: 'none',
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    padding: '28px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
-    border: '1px solid #f1f5f9',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-    paddingBottom: '15px',
-    borderBottom: '1px solid #f1f5f9',
-  },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  avatar: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
-    backgroundColor: '#2563eb',
-    color: '#ffffff',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    fontWeight: 'bold',
-    fontSize: '20px',
+    borderRadius: '12px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+    border: '1px solid #e2e8f0',
     overflow: 'hidden',
+    display: 'flex',
+    flexWrap: 'wrap',
+    marginBottom: '40px',
   },
-  avatarImg: {
+  imageBox: {
+    flex: '1 1 350px',
+    minHeight: '300px',
+    backgroundColor: '#f8fafc',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    maxHeight: '400px',
+    objectFit: 'cover',
+  },
+  noImg: {
+    color: '#94a3b8',
+    fontSize: '15px',
+  },
+  infoBox: {
+    flex: '1 1 400px',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  badgeGroup: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '12px',
+  },
+  typeBadge: {
+    padding: '4px 10px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '700',
+  },
+  categoryBadge: {
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
+    padding: '4px 10px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '600',
+  },
+  title: {
+    fontSize: '22px',
+    fontWeight: '800',
+    color: '#0f172a',
+    margin: '0 0 16px 0',
+  },
+  detailRow: {
+    fontSize: '14px',
+    color: '#334155',
+    marginBottom: '10px',
+  },
+  description: {
+    marginTop: '4px',
+    lineHeight: '1.6',
+    color: '#475569',
+    whiteSpace: 'pre-line',
+  },
+  divider: {
+    border: 'none',
+    borderTop: '1px solid #e2e8f0',
+    margin: '20px 0',
+  },
+  contactCard: {
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    padding: '16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+  },
+  relatedSection: {
+    marginTop: '20px',
+  },
+  relatedTitle: {
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: '16px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '16px',
+  },
+  gridCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    overflow: 'hidden',
+    textDecoration: 'none',
+    color: 'inherit',
+    transition: 'transform 0.2s',
+  },
+  gridImgBox: {
+    height: '130px',
+    backgroundColor: '#f1f5f9',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridImg: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
   },
-  avatarText: {
-    lineHeight: 1,
-  },
-  authorName: {
-    fontWeight: '700',
-    fontSize: '16px',
-    color: '#0f172a',
-  },
-  date: {
+  gridNoImg: {
     fontSize: '12px',
     color: '#94a3b8',
-    marginTop: '2px',
   },
-  badge: {
-    padding: '6px 14px',
-    borderRadius: '20px',
-    fontSize: '13px',
-    fontWeight: '600',
+  gridInfo: {
+    padding: '12px',
   },
-  badgeLost: {
-    backgroundColor: '#fef2f2',
-    color: '#dc2626',
-  },
-  badgeFound: {
-    backgroundColor: '#f0fdf4',
-    color: '#16a34a',
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: '800',
-    color: '#0f172a',
-    margin: '0 0 20px 0',
-  },
-  infoBox: {
-    backgroundColor: '#f8fafc',
-    padding: '16px',
-    borderRadius: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    marginBottom: '24px',
-  },
-  infoItem: {
+  gridTitle: {
     fontSize: '14px',
-    color: '#334155',
-  },
-  section: {
-    marginBottom: '24px',
-  },
-  sectionTitle: {
-    fontSize: '16px',
     fontWeight: '700',
+    margin: '0 0 6px 0',
     color: '#1e293b',
-    marginBottom: '10px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
-  description: {
-    fontSize: '15px',
-    color: '#475569',
-    lineHeight: '1.6',
-    whiteSpace: 'pre-line',
-  },
-  contactBox: {
-    backgroundColor: '#f0fdf4',
-    border: '1px solid #bbf7d0',
-    padding: '18px',
-    borderRadius: '12px',
-  },
-  contactItem: {
+  gridLocation: {
+    fontSize: '12px',
+    color: '#64748b',
     margin: 0,
-    fontSize: '14px',
-    color: '#166534',
   },
-  errorCard: {
+  emptyRelated: {
     backgroundColor: '#ffffff',
-    padding: '30px',
-    borderRadius: '12px',
-    textAlign: 'center',
+    padding: '20px',
+    borderRadius: '8px',
+    border: '1px border-dashed #cbd5e1',
+    color: '#64748b',
+    fontSize: '14px',
   },
 };
 
