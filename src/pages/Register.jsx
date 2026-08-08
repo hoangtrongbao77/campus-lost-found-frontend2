@@ -23,9 +23,10 @@ const Register = () => {
     setError('');
 
     try {
+      // Gửi request đăng ký với studentId
       const res = await API.post('/auth/register', formData);
       if (res.data.success) {
-        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        alert('Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
         navigate('/login');
       }
     } catch (err) {
@@ -46,6 +47,7 @@ const Register = () => {
         {error && <div style={styles.errorBox}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
+          {/* 1. HỌ VÀ TÊN */}
           <div style={styles.field}>
             <label style={styles.label}>Họ và tên:</label>
             <input
@@ -59,6 +61,7 @@ const Register = () => {
             />
           </div>
 
+          {/* 2. MÃ SINH VIÊN (THAY THẾ TÊN TÀI KHOẢN) */}
           <div style={styles.field}>
             <label style={styles.label}>Mã sinh viên (MSV):</label>
             <input
@@ -66,12 +69,13 @@ const Register = () => {
               name="studentId"
               value={formData.studentId}
               onChange={handleChange}
-              placeholder="Nhập mã sinh viên (VD: 211031...)..."
+              placeholder="Nhập mã sinh viên..."
               required
               style={styles.input}
             />
           </div>
 
+          {/* 3. EMAIL */}
           <div style={styles.field}>
             <label style={styles.label}>Email:</label>
             <input
@@ -79,12 +83,13 @@ const Register = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Nhập email trường/cá nhân..."
+              placeholder="Nhập email..."
               required
               style={styles.input}
             />
           </div>
 
+          {/* 4. MẬT KHẨU */}
           <div style={styles.field}>
             <label style={styles.label}>Mật khẩu:</label>
             <input
@@ -98,6 +103,7 @@ const Register = () => {
             />
           </div>
 
+          {/* NÚT ĐĂNG KÝ */}
           <button type="submit" disabled={loading} style={styles.button}>
             {loading ? 'Đang xử lý...' : 'Đăng Ký'}
           </button>
@@ -125,9 +131,9 @@ const styles = {
     width: '100%',
     maxWidth: '420px',
     backgroundColor: '#ffffff',
-    padding: '30px',
+    padding: '32px 28px',
     borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
     border: '1px solid #e2e8f0',
   },
   title: {
