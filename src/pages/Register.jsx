@@ -1,101 +1,215 @@
-import { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import API from '../api/axios'; // Import API instance đã cấu hình baseURL tự động
 
-export default function Register() {
+const Register = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     studentId: '',
-    fullName: '',
+    name: '',
     email: '',
     password: '',
-    phoneNumber: '',
+    phone: '',
   });
+
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
+
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', formData);
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('userInfo', JSON.stringify(res.data));
+      // Gửi request tới Backend Render thông qua instance API
+      await API.post('/auth/register', formData);
       alert('Đăng ký tài khoản thành công!');
-      navigate('/');
+      navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng ký thất bại!');
+      console.error('Lỗi đăng ký:', err);
+      setError(
+        err.response?.data?.message || 'Đăng ký thất bại! Vui lòng thử lại.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">Đăng Ký Tài Khoản</h2>
-        {error && <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-gray-700 text-sm font-semibold">Mã Số Sinh Viên</label>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Đăng Ký Tài Khoản</h2>
+
+        {error && <div style={styles.errorBanner}>{error}</div>}
+
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Mã Số Sinh Viên</label>
             <input
               type="text"
+              name="studentId"
+              value={formData.studentId}
+              onChange={handleChange}
+              placeholder="VD: 23T1020043"
               required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="SV123456"
-              onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+              style={styles.input}
             />
           </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-semibold">Họ và Tên</label>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Họ và Tên</label>
             <input
               type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="VD: Hoàng Trọng Bảo"
               required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nguyễn Văn A"
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              style={styles.input}
             />
           </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-semibold">Email</label>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email</label>
             <input
               type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="VD: hoangtrongbao1408@gmail.com"
               required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="nguyenvana@gmail.com"
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              style={styles.input}
             />
           </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-semibold">Mật Khẩu</label>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Mật Khẩu</label>
             <input
               type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••"
               required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              style={styles.input}
             />
           </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-semibold">Số Điện Thoại</label>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Số Điện Thoại</label>
             <input
-              type="text"
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="0912345678"
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="VD: 0344417290"
+              required
+              style={styles.input}
             />
           </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 mt-2"
-          >
-            Tạo Tài Khoản
+
+          <button type="submit" disabled={loading} style={styles.button}>
+            {loading ? 'Đang xử lý...' : 'Tạo Tài Khoản'}
           </button>
         </form>
-        <p className="text-center text-sm text-gray-600 mt-4">
+
+        <p style={styles.footerText}>
           Đã có tài khoản?{' '}
-          <Link to="/login" className="text-blue-600 font-semibold hover:underline">
+          <Link to="/login" style={styles.link}>
             Đăng nhập
           </Link>
         </p>
       </div>
     </div>
   );
-}
+};
+
+// Inline CSS giao diện khớp với giao diện của bạn
+const styles = {
+  container: {
+    minHeight: '80vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '20px',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    padding: '30px',
+    borderRadius: '12px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+    width: '100%',
+    maxWidth: '420px',
+  },
+  title: {
+    textAlign: 'center',
+    color: '#1d4ed8',
+    marginBottom: '20px',
+    fontSize: '24px',
+    fontWeight: 'bold',
+  },
+  errorBanner: {
+    backgroundColor: '#fef2f2',
+    color: '#991b1b',
+    border: '1px solid #fecaca',
+    padding: '10px 15px',
+    borderRadius: '6px',
+    marginBottom: '15px',
+    fontSize: '14px',
+    textAlign: 'center',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '5px',
+  },
+  label: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+  },
+  input: {
+    padding: '10px 12px',
+    borderRadius: '6px',
+    border: '1px solid #d1d5db',
+    fontSize: '14px',
+    outline: 'none',
+  },
+  button: {
+    marginTop: '10px',
+    padding: '12px',
+    backgroundColor: '#1d4ed8',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  footerText: {
+    marginTop: '20px',
+    textAlign: 'center',
+    fontSize: '14px',
+    color: '#6b7280',
+  },
+  link: {
+    color: '#1d4ed8',
+    fontWeight: '600',
+    textDecoration: 'none',
+  },
+};
+
+export default Register;
