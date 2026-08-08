@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import API from '../api/axios';
 
 const Login = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ account: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,22 +16,21 @@ const Login = () => {
     setError('');
 
     try {
-      // 🟢 Gửi cả 'email' lẫn 'username' để tương thích với kiểm tra của Backend
+      // Gửi đầy đủ các thuộc tính để khớp 100% với Backend
       const payload = {
         email: formData.account,
         username: formData.account,
+        account: formData.account,
         password: formData.password,
       };
 
       const res = await API.post('/auth/login', payload);
       const data = res.data;
 
-      // Lưu Token và dữ liệu User vào LocalStorage
       const token = data.token || data.accessToken;
       if (token) localStorage.setItem('token', token);
       if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Chuyển hướng về trang chủ
       window.location.href = '/';
     } catch (err) {
       console.error('Lỗi đăng nhập:', err);
